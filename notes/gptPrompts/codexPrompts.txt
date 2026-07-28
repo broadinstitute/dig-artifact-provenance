@@ -1,0 +1,25 @@
+
+
+- 20260727 - start project
+
+the observable artifact tracking component can be a thin light layer distributable by pip for the pipeline code to install at runtime
+this thin layer can communicate with a REST based server with a flask sqlite backend for persistence
+again, minimal adjustment to the pipeline code is desirable
+update the recommendations document
+
+
+analyze the method directory bottom-line in the /Users/mduby/Code/ScalaWorkspace/MethodsBioindex repository
+this is a computation framework that runs a method pipeline on aws emr
+we need to create an python application in the current /Users/mduby/Code/DccWorkspace/ArtifactProvenance repository directory to track provenance of artifacts created during the 
+computation pipeline
+the application in the /Users/mduby/Code/DccWorkspace/ArtifactProvenance repository directory should be least disruptive to the existing pipeline code; look to use observable or other annotations
+the application should be flexible enough to be used for other pipelines in the /Users/mduby/Code/ScalaWorkspace/MethodsBioindex repository directory
+desired technologies are: 
+- sqlite for artifact provenance information
+- flask for provenance retrieval
+- aws s3 for artifact storage
+- ga4gh DRS https://github.com/ga4gh/data-repository-service-schemas for artifact versioning and ID tracking 
+the python code shou,d be broken down into <function>_utils.py files depending on the method function (sql, web, file, etc)
+please summarize your recommendations in a markdown file in the existing directory notes/gptRecommendations
+
+
