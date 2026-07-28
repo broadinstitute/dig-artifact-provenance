@@ -1,0 +1,33 @@
+
+
+
+- 20260727 - start project
+
+====================
+====================
+====================
+====================
+====================
+====================
+====================
+====================
+
+
+
+====================
+• Updated notes/gptRecommendations/bottom-line-provenance-recommendations.md.
+
+  The document now recommends a two-part design: a thin pip-installable runtime client for EMR/pipeline code, and a REST-based Flask server with SQLite persistence in this repo. It also changes the proposed code layout so generated code lives under
+  src/provenance_client/ and src/provenance_server/, and it emphasizes minimal pipeline changes through wrappers, annotations, and a very small observation API.
+
+====================
+• Created notes/gptRecommendations/bottom-line-provenance-recommendations.md.
+
+  The recommendation is to build a standalone, reusable Python provenance package in this repo and integrate it with MethodsBioindex through thin stage metadata plus runtime wrappers, not by rewriting the bottom-line pipeline. The document maps the
+  bottom-line stage boundaries, identifies the best hook points in the existing Scala and Python jobs, proposes a *_utils.py package layout, defines a SQLite-centered provenance schema, recommends GA4GH DRS-compatible logical IDs and version
+  records, and suggests a read-focused Flask API with S3-backed artifact manifests.
+
+  I did not change any MethodsBioindex code.
+
+
+

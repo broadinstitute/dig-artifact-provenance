@@ -6,6 +6,12 @@ This document summarizes recommendations for a Python provenance application in 
 
 The existing `bottom-line` method is a Scala orchestrator over EMR jobs with Python and shell execution at stage boundaries. The least disruptive design is to add provenance capture around those stage/job boundaries and artifact write points rather than rewriting stage logic.
 
+The preferred architecture is now:
+
+- a thin pip-installable provenance client that pipeline jobs can install at runtime on EMR
+- a REST-based provenance server implemented in this repository with Flask and SQLite
+- minimal pipeline code changes, ideally wrapper calls or a few explicit observation calls at output boundaries
+
 ## Observations From `bottom-line`
 
 The pipeline is stage-oriented in Scala and already has clean execution seams:
@@ -19,21 +25,23 @@ The pipeline is stage-oriented in Scala and already has clean execution seams:
 This makes provenance collection feasible with:
 
 - stage-level annotations in Scala
-- a thin Python CLI wrapper around existing Python entrypoints
+- a thin Python client or CLI wrapper around existing Python entrypoints
 - optional shell wrappers for script-based stages
 - artifact registration after writes to S3
+- REST submission to an external provenance service
 
 ## Bottom-Line Recommendation
 
-Build the provenance app as a standalone Python package in this repository and integrate it into MethodsBioindex with thin instrumentation only:
+Build the provenance system as two parts:
 
-1. Annotate or describe each pipeline stage with provenance metadata.
-2. Wrap existing Python and shell entrypoints with a provenance runner.
-3. Register produced artifacts in SQLite and mirror canonical artifact metadata to S3.
-4. Mint GA4GH DRS-compatible IDs for every logical artifact version.
-5. Expose read-only retrieval through Flask.
+1. A thin client package, distributable by `pip`, that the pipeline can install at runtime and call with minimal code changes.
+2. A Flask REST server in this repository backed by SQLite for persistence and retrieval.
+3. Stage metadata expressed through annotations, wrappers, or sidecar manifests.
+4. Artifact registration sent over REST from the thin client to the server.
+5. GA4GH DRS-compatible IDs minted and resolved by the server.
+6. Canonical artifact metadata mirrored to S3 as manifests.
 
-This avoids deep changes to the Scala stage engine and keeps the provenance layer portable across `bottom-line`, `bioindex`, `pigean`, `ldsc`, and similar modules.
+This avoids deep changes to the Scala stage engine, keeps runtime dependencies light for EMR jobs, and makes the provenance layer portable across `bottom-line`, `bioindex`, `pigean`, `ldsc`, and similar modules.
 
 ## Proposed Integration Model
 
@@ -64,14 +72,15 @@ If changing the Scala core is undesirable, the lowest-risk option is a sidecar Y
 
 to provenance behavior and artifact patterns.
 
-### 2. Entry-point wrapping
+### 2. Thin client plus entry-point wrapping
 
-Wrap existing jobs instead of modifying their internals heavily.
+Wrap existing jobs instead of modifying their internals heavily, and route events through a small client library.
 
 Examples:
 
 - `Job.PySpark(resourceUri("partitionVariants.py"), ...)` becomes a call to a generic provenance launcher that then invokes `partitionVariants.py`.
 - Shell stages such as `runAncestrySpecific.sh` and `runTransEthnic.sh` are invoked through a thin wrapper that records run start, run end, exit code, inputs, and outputs.
+- Existing Python scripts can import a lightweight client helper and call one or two functions around output writes.
 
 Recommended wrapper behavior:
 
@@ -81,8 +90,8 @@ Recommended wrapper behavior:
 - invoke original command
 - enumerate produced artifacts
 - compute checksums or manifest hashes
-- register artifact versions
-- persist run and artifact records
+- POST run and artifact events to the REST server
+- fall back to buffered local JSON if the server is temporarily unavailable
 
 ### 3. Output registration at write boundaries
 
@@ -98,7 +107,7 @@ Examples already present:
 Instrument these write boundaries with a shared helper like:
 
 ```python
-from provenance.observer_utils import observe_artifact_write
+from provenance_client.observer_utils import observe_artifact_write
 
 observe_artifact_write(
     logical_name="bottom-line.trans-ethnic",
@@ -111,14 +120,21 @@ observe_artifact_write(
 
 For shell-only stages, capture outputs from declared path patterns in the stage manifest.
 
+The key point is that the pipeline code should not need to know about SQLite or Flask directly. It only talks to the thin client.
+
 ## Recommended Python Application Structure
+
+Generate the code under subdirectories of `src/` and split it into two packages:
+
+- `provenance_client` for the thin pip-installable runtime layer
+- `provenance_server` for the Flask and SQLite backend
 
 Use function-oriented utility modules as requested.
 
 ```text
 ArtifactProvenance/
   src/
-    provenance/
+    provenance_client/
       __init__.py
       config_utils.py
       logging_utils.py
@@ -127,12 +143,29 @@ ArtifactProvenance/
       annotations_utils.py
       observer_utils.py
       context_utils.py
-      sqlite_utils.py
-      schema_utils.py
-      migration_utils.py
       file_utils.py
       s3_utils.py
       hash_utils.py
+      rest_utils.py
+      retry_utils.py
+      queue_utils.py
+      manifest_utils.py
+      json_utils.py
+      pipeline_utils.py
+      stage_utils.py
+      run_utils.py
+      artifact_utils.py
+      cli_utils.py
+      emr_utils.py
+    provenance_server/
+      __init__.py
+      config_utils.py
+      logging_utils.py
+      time_utils.py
+      id_utils.py
+      sqlite_utils.py
+      schema_utils.py
+      migration_utils.py
       drs_utils.py
       manifest_utils.py
       json_utils.py
@@ -143,8 +176,8 @@ ArtifactProvenance/
       stage_utils.py
       run_utils.py
       artifact_utils.py
-      cli_utils.py
-      emr_utils.py
+      s3_utils.py
+      auth_utils.py
       models.py
       app.py
   notes/
@@ -153,24 +186,29 @@ ArtifactProvenance/
 
 Suggested responsibilities:
 
-- `annotations_utils.py`: decorators and annotation parsing
-- `observer_utils.py`: run/artifact observation API
-- `sqlite_utils.py`: SQLite connection and transaction helpers
-- `schema_utils.py`: DDL and schema lifecycle
-- `migration_utils.py`: schema evolution
-- `file_utils.py`: local file discovery and metadata
-- `s3_utils.py`: S3 listing, stat, tagging, upload, manifest storage
-- `drs_utils.py`: DRS object ID generation and response serialization
-- `web_utils.py` and `flask_utils.py`: Flask routes and HTTP helpers
-- `pipeline_utils.py`: generic pipeline registration model
-- `stage_utils.py`: stage metadata normalization
-- `run_utils.py`: run lifecycle state transitions
-- `artifact_utils.py`: artifact version creation and lineage
-- `emr_utils.py`: EMR metadata capture from environment and Spark context
+- `provenance_client/annotations_utils.py`: decorators and annotation parsing
+- `provenance_client/observer_utils.py`: run/artifact observation API used by pipeline code
+- `provenance_client/rest_utils.py`: REST submission to the provenance server
+- `provenance_client/queue_utils.py`: local buffering for retryable event delivery
+- `provenance_client/file_utils.py`: local file discovery and metadata
+- `provenance_client/s3_utils.py`: S3 stat and manifest capture from runtime jobs
+- `provenance_client/pipeline_utils.py`: generic pipeline registration model
+- `provenance_client/stage_utils.py`: stage metadata normalization
+- `provenance_client/run_utils.py`: client-side run lifecycle helpers
+- `provenance_client/artifact_utils.py`: client-side artifact event creation
+- `provenance_client/emr_utils.py`: EMR metadata capture from environment and Spark context
+- `provenance_server/sqlite_utils.py`: SQLite connection and transaction helpers
+- `provenance_server/schema_utils.py`: DDL and schema lifecycle
+- `provenance_server/migration_utils.py`: schema evolution
+- `provenance_server/drs_utils.py`: DRS object ID generation and response serialization
+- `provenance_server/web_utils.py` and `provenance_server/flask_utils.py`: Flask routes and HTTP helpers
+- `provenance_server/run_utils.py`: persisted run lifecycle state transitions
+- `provenance_server/artifact_utils.py`: artifact version creation and lineage
+- `provenance_server/s3_utils.py`: S3 manifest publication and optional access URL generation
 
 ## Data Model Recommendation
 
-Use SQLite as the system-of-record for provenance metadata collected by the Python app. Keep binary or large content in S3.
+Use SQLite as the system-of-record on the server side. Keep binary or large content in S3.
 
 Core tables:
 
@@ -305,7 +343,7 @@ s3://<bucket>/provenance/
 
 ## Flask Recommendation
 
-Use Flask as a read-focused API and admin surface.
+Use Flask as the REST server and retrieval surface.
 
 Recommended endpoints:
 
@@ -317,31 +355,41 @@ Recommended endpoints:
 - `GET /artifacts/<artifact_id>/versions`
 - `GET /drs/objects/<object_id>`
 - `GET /lineage/<artifact_version_id>`
+- `POST /api/v1/runs`
+- `POST /api/v1/run-events`
+- `POST /api/v1/artifacts`
+- `POST /api/v1/artifact-versions`
 
 Optional later endpoints:
 
-- `POST /runs/register`
-- `POST /artifacts/register`
+- `POST /api/v1/batch`
+- `POST /api/v1/manifests`
 
-Initially, prefer internal CLI registration plus read-only Flask retrieval. That is operationally simpler and lower risk.
+Initially, keep the client API very small. The thin layer should mostly need:
+
+- `start_run(...)`
+- `complete_run(...)`
+- `fail_run(...)`
+- `observe_artifact_write(...)`
 
 ## Least-Disruptive Rollout Path
 
 ### Phase 1
 
-Implement the app in this repository only:
+Implement the server app in this repository only:
 
+- Flask app
 - SQLite schema
 - DRS ID model
 - S3 metadata helpers
-- Flask read API
-- CLI registration commands
+- REST write and read API
+- thin client package scaffolding under `src/provenance_client`
 
 No MethodsBioindex changes yet beyond analysis.
 
 ### Phase 2
 
-Integrate by wrapping only a few `bottom-line` entrypoints:
+Integrate by wrapping only a few `bottom-line` entrypoints with the pip-installable client:
 
 - `partitionVariants.py`
 - `loadAnalysis.py`
@@ -437,25 +485,62 @@ def load_trans_ethnic_analysis(...):
     ...
 ```
 
-This is appropriate for new Python code in the provenance app. For existing MethodsBioindex scripts, prefer a wrapper or explicit helper calls over broad decorator retrofits.
+This is appropriate for new Python code in the provenance client. For existing MethodsBioindex scripts, prefer a wrapper or explicit helper calls over broad decorator retrofits.
+
+## Thin Client Packaging Recommendation
+
+The runtime tracking component should be distributed as a small pip package, for example:
+
+- package name: `dig-provenance-client`
+- install target: EMR bootstrap or job runtime install
+- dependency profile: minimal, avoiding heavy server-only dependencies
+
+Recommended client characteristics:
+
+- no SQLite dependency
+- no Flask dependency
+- small dependency surface, ideally `requests` plus AWS SDK support only if needed
+- stateless operation except for optional local retry queue
+- compatible with Python scripts and shell wrappers
+
+Recommended install options:
+
+- include in EMR bootstrap for broad reuse
+- or install at job runtime for minimal platform coupling
+
+## Server Recommendation
+
+The persistence and retrieval server should remain in this repository and expose a REST API backed by Flask and SQLite.
+
+Recommended server characteristics:
+
+- authoritative run and artifact persistence
+- DRS object and version resolution
+- lineage traversal
+- optional S3 manifest publication
+- read-heavy API plus small authenticated write surface for the thin client
 
 ## Risks And Constraints
 
-- SQLite is strong for metadata and low operational overhead, but not a write-heavy distributed coordination store. Use it for provenance records, not as a cross-cluster lock service.
+- SQLite is strong for metadata and low operational overhead, but not a write-heavy distributed coordination store. Use it for provenance records on the server, not as a cross-cluster lock service.
 - S3 directory-like outputs from Spark are multi-file datasets, so versioning should be manifest-based rather than single-object based.
 - Some shell stages may produce outputs indirectly, so manifest-driven output declaration will be more reliable than runtime filesystem inference alone.
 - EMR retries can create duplicate write attempts; run registration must be idempotent.
+- Client-to-server communication can fail transiently on EMR, so the thin client should support buffered retry.
 - Checksumming whole Spark output trees can be expensive. Prefer manifest hashes from object listings, ETags where appropriate, and optionally sampled validation.
 
 ## Implementation Recommendation
 
-Build the app in this repository as a generic provenance service package with:
+Build the system in this repository as a generic provenance server plus thin client package with:
 
 - manifest-driven stage definitions
 - wrapper-based runtime observation
-- SQLite metadata
+- REST-based client/server communication
+- Flask retrieval and write API
+- SQLite metadata on the server
 - S3-backed artifact manifests
 - DRS-compatible object/version IDs
-- Flask retrieval API
+- pip-distributed runtime client under `src/provenance_client`
+- server implementation under `src/provenance_server`
 
 For `bottom-line`, start with three entrypoints and a sidecar stage manifest rather than changing the Scala framework deeply. That gives useful lineage quickly and provides the template for reuse across the rest of MethodsBioindex.

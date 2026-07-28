@@ -5,6 +5,7 @@
 the observable artifact tracking component can be a thin light layer distributable by pip for the pipeline code to install at runtime
 this thin layer can communicate with a REST based server with a flask sqlite backend for persistence
 again, minimal adjustment to the pipeline code is desirable
+the code should be generated in subdirectories of the src directory
 update the recommendations document
 
 
