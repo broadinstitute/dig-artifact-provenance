@@ -1,5 +1,17 @@
 
 
+track the compute commands used to generate the artifacts in a graph format from inouts to outputs
+
+
+- 20260729 - update to add in gene Methods 
+
+the observable artifact tracking component will also be used for methods in the gene set generation pipeline 
+located in repository directory located at /Users/mduby/Code/DccWorkspace/MethodGeneSetExtractors
+which is wrapped by an orchestration layer located in repository directory located at /Users/mduby/Code/DccWorkspace/ServerGeneSetCompute
+focus on the file artifact generation 
+update the recommendations document 
+
+
 - 20260727 - start project
 
 the observable artifact tracking component can be a thin light layer distributable by pip for the pipeline code to install at runtime
@@ -20,7 +32,7 @@ desired technologies are:
 - flask for provenance retrieval
 - aws s3 for artifact storage
 - ga4gh DRS https://github.com/ga4gh/data-repository-service-schemas for artifact versioning and ID tracking 
-the python code shou,d be broken down into <function>_utils.py files depending on the method function (sql, web, file, etc)
+the python code should be broken down into <function>_utils.py files depending on the method function (sql, web, file, etc)
 please summarize your recommendations in a markdown file in the existing directory notes/gptRecommendations
 
 

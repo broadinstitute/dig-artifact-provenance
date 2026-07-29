@@ -1,8 +1,14 @@
-# Bottom-Line Provenance Recommendations
+# Pipeline Provenance Recommendations
 
 ## Scope
 
-This document summarizes recommendations for a Python provenance application in `/Users/mduby/Code/DccWorkspace/ArtifactProvenance` that can track artifacts produced by the `bottom-line` pipeline in `/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/bottom-line` and remain reusable for other MethodsBioindex pipelines.
+This document summarizes recommendations for a Python provenance application in `/Users/mduby/Code/DccWorkspace/ArtifactProvenance` that can track artifacts produced by:
+
+- the `bottom-line` pipeline in `/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/bottom-line`
+- the gene set generation pipeline in `/Users/mduby/Code/DccWorkspace/MethodGeneSetExtractors`
+- the orchestration layer in `/Users/mduby/Code/DccWorkspace/ServerGeneSetCompute`
+
+The design should remain reusable for other MethodsBioindex pipelines and other file-producing compute workflows.
 
 The existing `bottom-line` method is a Scala orchestrator over EMR jobs with Python and shell execution at stage boundaries. The least disruptive design is to add provenance capture around those stage/job boundaries and artifact write points rather than rewriting stage logic.
 
@@ -10,7 +16,16 @@ The preferred architecture is now:
 
 - a thin pip-installable provenance client that pipeline jobs can install at runtime on EMR
 - a REST-based provenance server implemented in this repository with Flask and SQLite
-- minimal pipeline code changes, ideally wrapper calls or a few explicit observation calls at output boundaries
+- minimal pipeline code changes, ideally wrapper calls or a few explicit observation calls at file and output-directory boundaries
+
+The primary focus should be file artifact generation and publication:
+
+- files written locally
+- output directories produced by a workflow run
+- Spark-style multi-file datasets
+- manifest files
+- tarballs and bundles
+- S3-published copies of local outputs
 
 ## Observations From `bottom-line`
 
@@ -93,7 +108,7 @@ Recommended wrapper behavior:
 - POST run and artifact events to the REST server
 - fall back to buffered local JSON if the server is temporarily unavailable
 
-### 3. Output registration at write boundaries
+### 3. Output registration at file and directory write boundaries
 
 The most reliable low-touch provenance signal is the existing output path creation in Python scripts.
 
@@ -122,6 +137,33 @@ For shell-only stages, capture outputs from declared path patterns in the stage 
 
 The key point is that the pipeline code should not need to know about SQLite or Flask directly. It only talks to the thin client.
 
+For the gene set pipelines, the most important signals are:
+
+- `write_text`, `write_bytes`, and canonical JSON write calls
+- bundle, archive, and GMT generation
+- creation of output directories containing standard file sets
+- publication of a local output tree to S3
+- publication of provenance-resolved rerun inputs to S3
+
+The client should support both single-file and directory-level observation APIs.
+
+## Observations From The Gene Set Pipelines
+
+The gene set stack is already file-centric, which makes it an especially good fit for artifact tracking.
+
+In `MethodGeneSetExtractors`:
+
+- [README.md](/Users/mduby/Code/DccWorkspace/MethodGeneSetExtractors/README.md:177) defines a common output contract centered on `geneset.tsv`, `geneset.meta.json`, and `geneset.provenance.json`.
+- [cli.py](/Users/mduby/Code/DccWorkspace/MethodGeneSetExtractors/src/geneset_extractors/cli.py:135) already exposes provenance-related CLI flags such as `--provenance_overlay_json`, `--provenance_mirror_local_prefix`, and `--upstream_provenance_graph_json`.
+- [core/provenance.py](/Users/mduby/Code/DccWorkspace/MethodGeneSetExtractors/src/geneset_extractors/core/provenance.py:21) already models runtime context, canonical JSON writing, file hashing, stable IDs, and provenance mirroring.
+
+In `ServerGeneSetCompute`:
+
+- [publish_library_to_s3.py](/Users/mduby/Code/DccWorkspace/ServerGeneSetCompute/src/publish_library_to_s3.py:36) scans local output trees, identifies provenance files, resolves input files from provenance, and publishes outputs plus rerun inputs to S3.
+- The repo contains many workflow entrypoints and output trees organized by run, model, and study, so a single logical run often produces a directory of related file artifacts rather than a single file.
+
+This means the provenance client should treat the gene set stack as a first-class use case rather than a later extension.
+
 ## Recommended Python Application Structure
 
 Generate the code under subdirectories of `src/` and split it into two packages:
@@ -144,6 +186,7 @@ ArtifactProvenance/
       observer_utils.py
       context_utils.py
       file_utils.py
+      directory_utils.py
       s3_utils.py
       hash_utils.py
       rest_utils.py
@@ -191,6 +234,7 @@ Suggested responsibilities:
 - `provenance_client/rest_utils.py`: REST submission to the provenance server
 - `provenance_client/queue_utils.py`: local buffering for retryable event delivery
 - `provenance_client/file_utils.py`: local file discovery and metadata
+- `provenance_client/directory_utils.py`: output directory scanning, manifest generation, and directory-level artifact capture
 - `provenance_client/s3_utils.py`: S3 stat and manifest capture from runtime jobs
 - `provenance_client/pipeline_utils.py`: generic pipeline registration model
 - `provenance_client/stage_utils.py`: stage metadata normalization
@@ -222,6 +266,7 @@ Core tables:
 - `artifact_lineage`
 - `drs_object`
 - `tag`
+- `artifact_member`
 
 Recommended fields:
 
@@ -277,6 +322,18 @@ Recommended fields:
 - `key`
 - `is_primary`
 
+### `artifact_member`
+
+- `artifact_member_id`
+- `artifact_version_id`
+- `member_path`
+- `member_role`
+- `member_format`
+- `member_size_bytes`
+- `member_hash`
+- `is_metadata`
+- `is_provenance`
+
 ### `artifact_lineage`
 
 - `parent_artifact_version_id`
@@ -308,6 +365,12 @@ Recommended DRS mapping:
 - DRS version = artifact version
 - DRS access methods = S3 URIs or pre-signed URL generation strategy
 
+For file-heavy workflows:
+
+- a run output directory can be one logical DRS object with many file members
+- `geneset.tsv`, `geneset.meta.json`, and `geneset.provenance.json` should be recorded as named members within the version
+- bundle tarballs can be represented either as standalone artifacts or as published distributions derived from a directory artifact
+
 Do not start by implementing the full GA4GH DRS API surface. Start with:
 
 - internal DRS ID minting
@@ -325,6 +388,8 @@ Recommended S3 content:
 - artifact manifest JSON files
 - optional copied SQLite snapshots for audit/export
 - optional per-run event logs
+- published output trees
+- published rerun input trees
 
 Recommended pattern:
 
@@ -339,6 +404,15 @@ s3://<bucket>/provenance/
   runs/<run_id>.json
   artifacts/<artifact_id>/versions/<version_id>.json
   drs/<drs_object_id>.json
+```
+
+For gene set pipelines, also support prefixes like:
+
+```text
+s3://<bucket>/provenance/
+  runs/<run_id>/output-manifest.json
+  runs/<run_id>/input-manifest.json
+  artifacts/<artifact_id>/versions/<version_id>/members.tsv
 ```
 
 ## Flask Recommendation
@@ -371,6 +445,16 @@ Initially, keep the client API very small. The thin layer should mostly need:
 - `complete_run(...)`
 - `fail_run(...)`
 - `observe_artifact_write(...)`
+- `observe_directory_artifact(...)`
+- `observe_s3_publish(...)`
+
+Recommended file-focused client helpers:
+
+- `observe_file_artifact(path=..., logical_name=..., file_role=...)`
+- `observe_directory_artifact(path=..., logical_name=..., member_glob=...)`
+- `observe_manifest_artifact(path=..., logical_name=...)`
+- `observe_s3_publish(local_path=..., s3_uri=..., logical_name=...)`
+- `observe_s3_tree_publish(local_root=..., s3_root=..., logical_name=...)`
 
 ## Least-Disruptive Rollout Path
 
@@ -416,6 +500,24 @@ Add stage manifests for all `bottom-line` stages:
 
 Generalize the same wrapper and manifest pattern to other MethodsBioindex method directories.
 
+### Phase 5
+
+Integrate with `MethodGeneSetExtractors` at file-generation seams:
+
+- canonical JSON writers
+- output directory validation and finalization
+- GMT and bundle writers
+- local provenance emission
+
+### Phase 6
+
+Integrate with `ServerGeneSetCompute` publication seams:
+
+- local output tree scan
+- S3 publication of outputs
+- S3 publication of rerun input files
+- generated publish manifests
+
 ## Generic Reuse Across MethodsBioindex
 
 To keep the app reusable for other pipelines, design around a generic contract:
@@ -439,6 +541,8 @@ src/provenance/methods/
   bottom_line_utils.py
   bioindex_utils.py
   pigean_utils.py
+  geneset_extractors_utils.py
+  server_geneset_compute_utils.py
 ```
 
 ## Concrete Hook Points For `bottom-line`
@@ -460,6 +564,19 @@ Particularly high-value artifacts:
 - clumped outputs
 - open-data published sumstats
 
+Best initial hook points for `MethodGeneSetExtractors`:
+
+1. Common output contract emission for `geneset.tsv`, `geneset.meta.json`, and `geneset.provenance.json`.
+2. Shared canonical JSON and provenance-writing helpers in `core/provenance.py`.
+3. CLI-level run context initialization in `cli.py`.
+4. Bundle and archive generation workflows that produce tarballs, checksums, or reference bundles.
+
+Best initial hook points for `ServerGeneSetCompute`:
+
+1. Output-tree publication in `publish_library_to_s3.py`.
+2. Manifest generation for output files and resolved rerun inputs.
+3. Run scripts and workflow entrypoints that create study/model output directories.
+
 ## Recommendation On Observables And Annotations
 
 Use both:
@@ -472,6 +589,7 @@ Recommended pattern:
 - decorators for Python entrypoints and helper functions
 - manifest-driven metadata for Scala and shell stages
 - event hooks for `run_started`, `artifact_written`, `artifact_promoted`, `run_failed`, `run_completed`
+- event hooks for `directory_finalized`, `manifest_written`, `s3_publish_started`, and `s3_publish_completed`
 
 Example decorator:
 
@@ -502,6 +620,7 @@ Recommended client characteristics:
 - small dependency surface, ideally `requests` plus AWS SDK support only if needed
 - stateless operation except for optional local retry queue
 - compatible with Python scripts and shell wrappers
+- equally usable from EMR jobs and local file-based Python workflows
 
 Recommended install options:
 
@@ -519,15 +638,18 @@ Recommended server characteristics:
 - lineage traversal
 - optional S3 manifest publication
 - read-heavy API plus small authenticated write surface for the thin client
+- directory artifact membership persistence for file-heavy workflows
 
 ## Risks And Constraints
 
 - SQLite is strong for metadata and low operational overhead, but not a write-heavy distributed coordination store. Use it for provenance records on the server, not as a cross-cluster lock service.
 - S3 directory-like outputs from Spark are multi-file datasets, so versioning should be manifest-based rather than single-object based.
+- The gene set pipelines produce many local file trees before publication, so provenance must model local filesystem artifacts as first-class objects, not only S3 objects.
 - Some shell stages may produce outputs indirectly, so manifest-driven output declaration will be more reliable than runtime filesystem inference alone.
 - EMR retries can create duplicate write attempts; run registration must be idempotent.
 - Client-to-server communication can fail transiently on EMR, so the thin client should support buffered retry.
 - Checksumming whole Spark output trees can be expensive. Prefer manifest hashes from object listings, ETags where appropriate, and optionally sampled validation.
+- File-tree scans in large gene set libraries can also be expensive, so directory manifests should support incremental or filtered capture.
 
 ## Implementation Recommendation
 
@@ -542,5 +664,8 @@ Build the system in this repository as a generic provenance server plus thin cli
 - DRS-compatible object/version IDs
 - pip-distributed runtime client under `src/provenance_client`
 - server implementation under `src/provenance_server`
+- first-class support for file artifacts, directory artifacts, and publish events
 
-For `bottom-line`, start with three entrypoints and a sidecar stage manifest rather than changing the Scala framework deeply. That gives useful lineage quickly and provides the template for reuse across the rest of MethodsBioindex.
+For `bottom-line`, start with three entrypoints and a sidecar stage manifest rather than changing the Scala framework deeply.
+
+For the gene set stack, start with the standard output contract files and the S3 publication script, because those are already stable, shared seams across many workflows.

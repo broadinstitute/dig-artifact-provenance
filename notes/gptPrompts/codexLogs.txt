@@ -1,18 +1,31 @@
 
 
 
+
+====================
+====================
+====================
+====================
+====================
+====================
+====================
+
+- 20260729 - update to add in gene Methods 
+
+
+
+====================
+
+
+• Updated notes/gptRecommendations/bottom-line-provenance-recommendations.md.
+
+  The document now treats MethodGeneSetExtractors and ServerGeneSetCompute as first-class targets alongside bottom-line, with the recommendation shifted toward file artifact generation, directory artifacts, and S3 publish events. It adds gene-set-
+  specific observations, new client helpers for file and directory tracking, an artifact_member model for files within a versioned artifact, and rollout/hook-point sections focused on geneset.tsv, geneset.meta.json, geneset.provenance.json, bundle
+  outputs, and publish_library_to_s3.py.
+
+
+
 - 20260727 - start project
-
-====================
-====================
-====================
-====================
-====================
-====================
-====================
-====================
-
-
 
 ====================
 • Updated notes/gptRecommendations/bottom-line-provenance-recommendations.md.
