@@ -1,5 +1,16 @@
 
 
+
+- 20260811 - how to use new provenance schema
+export the dapper schema application to the bottom-line pipleline above to a markdown file
+at notes/gptRecommendations/bottom-line-dapper.md
+
+
+look over the provenance file schema at notes/schema/provenance/dapper.yaml
+how would I use it to store botton-line pipeline results
+
+
+
 track the compute commands used to generate the artifacts in a graph format from inouts to outputs
 
 

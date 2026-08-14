@@ -1,0 +1,6 @@
+
+
+- for every node/artifact creation, have previous node added in and linked
+  - ie: for json file, have process nide created adnd added in as previous node 
+  - this will define edge 
+  
