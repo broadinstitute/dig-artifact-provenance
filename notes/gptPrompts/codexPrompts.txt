@@ -2,6 +2,14 @@
 
 
 20260817 - minimum bottom line input/outputs
+using notes/gptRecommendations/bottom-line-dapper-input-to-output.md as reference
+use input file locations like in s3://dig-analysis-data/variants_raw/GWAS/Agrawal2022_LocalAdiposity_Mixed_females/GFAT/
+use output output file locations like in s3://dig-open-bottom-line-analysis-stg/bottom-line/AA/
+this might include the intake pipeline as well as bottom-line pipeline
+export the above approach to a markdown file
+at notes/gptRecommendations/intake-to-bottom-line-dapper.md
+
+
 using notes/gptRecommendations/bottom-line-dapper.md and 
 the provenance file schema at notes/schema/provenance/dapper.yaml as references
 map out how to implement provenance documents for the bottom-line pipeline results
