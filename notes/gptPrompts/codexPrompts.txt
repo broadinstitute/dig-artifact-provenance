@@ -1,6 +1,21 @@
 
 
 
+20260817 - minimum bottom line input/outputs
+using notes/gptRecommendations/bottom-line-dapper.md and 
+the provenance file schema at notes/schema/provenance/dapper.yaml as references
+map out how to implement provenance documents for the bottom-line pipeline results
+focus on all the stages being one block where the input files to the bottotm-line process produce an output
+also describe how to map the input files being used by the pipeline block to produce the output results 
+into a node/edge provenance graph in the provenance document
+export the above approach to a markdown file
+at notes/gptRecommendations/bottom-line-dapper-input-to-output.md
+
+
+look over the provenance file schema at notes/schema/provenance/dapper.yaml
+how would I use it to store botton-line pipeline results
+
+
 - 20260811 - how to use new provenance schema
 export the dapper schema application to the bottom-line pipleline above to a markdown file
 at notes/gptRecommendations/bottom-line-dapper.md
