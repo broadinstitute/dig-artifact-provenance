@@ -1,0 +1,38 @@
+
+
+aws s3 ls s3://dig-analysis-data/ --recursive \
+  | awk '{print $4}' \
+  | grep '/' \
+  | sed 's|/[^/]*$|/|' \
+  | sort -u
+
+aws s3 ls s3://out/ --recursive \
+  | awk '{print $4}' \
+  | grep '/' \
+  | sed 's|/[^/]*$|/|' \
+  | sort -u
+
+
+aws s3 ls s3://variants/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u
+
+working:
+--------
+aws s3 ls s3://dig-analysis-data/out/metaanalysis/variants/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-variants.txt
+
+aws s3 ls s3://dig-analysis-data/out/metaanalysis/bottom-line/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-bottom-line.txt
+
+aws s3 ls s3://dig-analysis-data/out/metaanalysis/min_p/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-minp.txt
+
+aws s3 ls s3://dig-analysis-data/out/metaanalysis/largest/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-largest.txt
+
+aws s3 ls s3://dig-analysis-data/out/metaanalysis/variants_raw/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-variants_raw.txt
+
+
+
+s3 buckets:
+-----------
+- out/metaanalysis/variants
+- out/metaanalysis/bottom-line
+- out/metaanalysis/min_p
+- out/metaanalysis/largest
+

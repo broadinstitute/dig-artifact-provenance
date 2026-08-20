@@ -1,7 +1,34 @@
 
 
+20260819n - investigating listing all s3 dirs and correlate with code to build graph
+create a src/python/create_bottom_line_graph.py python script that creates a json file 
+that will be saved to data/graph/provenance_graph.json
+the json file will contain a 'edges' list element and a 'nodes' list element 
+the edges and nodes will denote the graph of dependencies of the bottom-line pipeline 
+from the inputs to the endpoint directories of OpenDataTransferStage
+each node will either represent a stage of the pipeline or an input or output directory
+annotate the edges and nodes as recommended in notes/gptRecommendations/bottom-line-dapper.md 
+use the bottom-line code as reference to the pipeline steps taken
+use the s3 directory listing files in the data/s3 directory as reference
+let me know if you are missing an s3 directory lising and what busket it is
+
+
+
+in the bottom-line pipeline, what s3 buckets are used in input and output
+
+
 
 20260817 - minimum bottom line input/outputs
+is it possible to modify the bottom-line pipleline to emit an input manifest at a step
+for each of the open-data published outputs
+
+
+for each ethnicity phenotype combination of bottom-line outputs, is there a way to determine 
+from which variants/ directories the inputs came
+
+can you determine what variamts_raw/ location the intake pipeline read in from 
+to produce the variants/ inputs to the  bottom-line pipeline
+
 using notes/gptRecommendations/bottom-line-dapper-input-to-output.md as reference
 use input file locations like in s3://dig-analysis-data/variants_raw/GWAS/Agrawal2022_LocalAdiposity_Mixed_females/GFAT/
 use output output file locations like in s3://dig-open-bottom-line-analysis-stg/bottom-line/AA/
