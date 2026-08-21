@@ -28,6 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data"
 S3_DIR = DATA_DIR / "s3"
 OUTPUT_PATH = DATA_DIR / "graph" / "provenance_graph.json"
+GITHUB_REPO_ROOT = "https://github.com/broadinstitute/dig-aggregator-methods/blob/master"
 
 LISTING_FILES = {
     "variants_raw": S3_DIR / "dig-anal-variants_raw.txt",
@@ -178,11 +179,13 @@ def add_stage(
     ancestry: Optional[str] = None,
     observed: bool = False,
 ) -> str:
+    location_path = stage_location_path(stage_name)
     return graph.add_node(
         stage_id(stage_name, stage_group, method or "", dataset or "", phenotype or "", ancestry or ""),
         node_type="stage",
         dapper_class="Activity",
         label=label,
+        location_path=location_path,
         stage_name=stage_name,
         stage_group=stage_group,
         method=method,
@@ -217,6 +220,7 @@ def add_directory(
         dapper_class=dapper_class,
         label=label,
         uri=uri,
+        location_path=uri,
         directory_kind=kind,
         family=family,
         method=method,
@@ -255,6 +259,25 @@ def add_edge(
     if description:
         payload["description"] = description
     graph.add_edge(edge_key, **payload)
+
+
+def stage_location_path(stage_name: str) -> str:
+    path_by_stage = {
+        "VariantProcessingStage": "intake/src/main/scala/VariantProcessingStage.scala",
+        "VariantQCStage": "intake/src/main/scala/VariantQCStage.scala",
+        "VariantScalingStage": "intake/src/main/scala/VariantScalingStage.scala",
+        "PartitionStage": "bottom-line/src/main/scala/PartitionStage.scala",
+        "AncestrySpecificStage": "bottom-line/src/main/scala/AncestrySpecificStage.scala",
+        "LoadAncestrySpecificStage": "bottom-line/src/main/scala/LoadAncestrySpecificStage.scala",
+        "TransEthnicStage": "bottom-line/src/main/scala/TransEthnicStage.scala",
+        "LoadTransEthnicStage": "bottom-line/src/main/scala/LoadTransEthnicStage.scala",
+        "MinPStage": "bottom-line/src/main/scala/MinPStage.scala",
+        "MinPTransEthnicStage": "bottom-line/src/main/scala/MinPTransEthnicStage.scala",
+        "LargestStage": "bottom-line/src/main/scala/LargestStage.scala",
+        "OpenDataTransferStage": "bottom-line/src/main/scala/OpenDataTransferStage.scala",
+    }
+    suffix = path_by_stage.get(stage_name, "")
+    return f"{GITHUB_REPO_ROOT}/{suffix}" if suffix else GITHUB_REPO_ROOT
 
 
 def normalize_uri(uri: str) -> str:
