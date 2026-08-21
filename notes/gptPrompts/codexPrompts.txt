@@ -1,6 +1,13 @@
 
 
 20260819n - investigating listing all s3 dirs and correlate with code to build graph
+update the src/python/create_bottom_line_graph.py python script 
+using the updated full path listing data in the data/s3 directory as reference
+use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
+for the bottom-line and intake pipelies
+let me know if you are missing an s3 directory listing and what bucket it is
+
+
 create a src/python/create_bottom_line_graph.py python script that creates a json file 
 that will be saved to data/graph/provenance_graph.json
 the json file will contain a 'edges' list element and a 'nodes' list element 
