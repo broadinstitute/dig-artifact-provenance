@@ -1,6 +1,9 @@
 
 
 TBD
+
+
+20260821 - adding db
 write a sqlite schema file at notes/schema/database/provenance_db.sql 
 write a sql statement to create a sqlite table prov_artifact 
 with field id which is primary key text,
@@ -11,6 +14,9 @@ and field description which is a text nullable
 
 
 20260821 - generate dapper files
+create a markdown file notes/design/create-bottom-line-dapper.md detailing the function and design of the 
+src/python/create_bottom_line_dapper.py python script 
+
 create a src/python/create_bottom_line_dapper.py python script 
 that reads in the bottom-line pipeline graph data provided through a 'in-graph-file' argument 
 and creates a json file for all graph nodes of the s3://dig-open-bottom-line-analysis-stg endpoint directory
