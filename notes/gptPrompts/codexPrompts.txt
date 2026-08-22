@@ -1,6 +1,19 @@
 
 
 TBD
+- add type to db table
+
+create a src/python/load_bottom_line_to_db.py python script 
+that loads all the files in a directory provided through a 'in-data-dir' argument 
+that defaults to data/bottom-line-provenance
+to a sqlite database defined by schema 
+and writes out the database to a provided 'out-database-file' argument 
+that defaults to data/database/provenance_db.sqlite 
+
+20260822 - modify db
+modify the sqlite schema file at notes/schema/database/provenance_db.sql 
+add a field pipeline_type as a non null text to the prov_artifact table
+
 
 
 20260821 - adding db
@@ -10,7 +23,6 @@ with field id which is primary key text,
 field provenance which is a text non null,
 field name which is a text non null,
 and field description which is a text nullable
-
 
 
 20260821 - generate dapper files
