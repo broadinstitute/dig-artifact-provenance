@@ -1,13 +1,44 @@
 
 
-20260819n - investigating listing all s3 dirs and correlate with code to build graph
+TBD
+write a sqlite schema file at notes/schema/database/provenance_db.sql 
+write a sql statement to create a sqlite table prov_artifact 
+with field id which is primary key text,
+field provenance which is a text non null,
+field name which is a text non null,
+and field description which is a text nullable
+
+
+
+20260821 - generate dapper files
+create a src/python/create_bottom_line_dapper.py python script 
+that reads in the bottom-line pipeline graph data provided through a 'in-graph-file' argument 
+and creates a json file for all graph nodes of the s3://dig-open-bottom-line-analysis-stg endpoint directory
+create a unique json file name based on the location_path of the file excluding the s3 prefix and using _ to replace /
+the files will be written to the data/bottom-line-provenance directory
+use the notes/gptRecommendations/bottom-line-dapper.md as a reference for building the dapper provenance json files
+test the script using data/graph/provenance_graph.json as an input
+
+
+20260821 - add in paths to nodes
+create a markdown file notes/design/create-bottom-line-graph.md detailing the function and design of the 
+src/python/create_bottom_line_graph.py python script 
+
+update the src/python/create_bottom_line_graph.py python script 
+using the updated full path listing data in the data/s3 directory as reference
+use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
+add 'location_path' to the nodes which will either be a s3 file or directory for data 
+or a github url for the pipeline code
+
+
+20260820 - fill in gaps to data
 update the src/python/create_bottom_line_graph.py python script 
 using the updated full path listing data in the data/s3 directory as reference
 use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
 for the bottom-line and intake pipelies
 let me know if you are missing an s3 directory listing and what bucket it is
 
-
+20260819 - investigating listing all s3 dirs and correlate with code to build graph
 create a src/python/create_bottom_line_graph.py python script that creates a json file 
 that will be saved to data/graph/provenance_graph.json
 the json file will contain a 'edges' list element and a 'nodes' list element 
