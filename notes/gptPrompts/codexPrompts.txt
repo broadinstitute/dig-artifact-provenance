@@ -10,7 +10,34 @@ to a sqlite database defined by schema
 and writes out the database to a provided 'out-database-file' argument 
 that defaults to data/database/provenance_db.sqlite 
 
+20260824 - loading db
+modify the src/python/load_bottom_line_to_db.py python script 
+add a log file input parameter 'in-log-file'
+that will default to logs/bottom-line-provenance.log 
+If a provenance JSON is malformed, skip the file and log it
+log how many files read and how many database record created
+log each database record created with the file name read
+
 20260822 - modify db
+create a src/python/load_bottom_line_to_db.py python script 
+that loads all the files in a directory provided through a 'in-data-dir' argument 
+that defaults to data/bottom-line-provenance
+into a sqlite database whose file is specified through a 'in-database' argument
+insert each provenance file data into the prov_artifact table with the following table fields populated as:
+id will be the unique file name prefix
+pipeline_type will be 'bottom-line'
+provenance will be the json file content
+name will be a description of the end result node of the json file contents
+the script will first delete all prov_artifact rows of pipeline_type 'bottom-line' before starting the loading process
+test the script with the in-database being data/database/provenance_db.sqlite
+let me know if there are any concerns or issues
+
+
+to a sqlite database defined by schema 
+and writes out the database to a provided 'out-database-file' argument 
+that defaults to data/database/provenance_db.sqlite 
+
+
 modify the sqlite schema file at notes/schema/database/provenance_db.sql 
 add a field pipeline_type as a non null text to the prov_artifact table
 
