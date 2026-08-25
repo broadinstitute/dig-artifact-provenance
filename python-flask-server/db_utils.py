@@ -38,3 +38,26 @@ def list_artifact_ids(database_file: Path, limit: int) -> list[str]:
         raise DatabaseError(f"Failed to list provenance artifact ids: {exc}") from exc
 
     return [str(row["id"]) for row in rows]
+
+
+def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str | None] | None:
+    if not artifact_id:
+        raise DatabaseError("Artifact id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            row = connection.execute(
+                """
+                SELECT id, pipeline_type, provenance, name, description
+                FROM prov_artifact
+                WHERE id = ?
+                """,
+                (artifact_id,),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to fetch provenance artifact {artifact_id}: {exc}") from exc
+
+    if row is None:
+        return None
+
+    return {key: row[key] for key in row.keys()}

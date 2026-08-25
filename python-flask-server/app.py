@@ -9,7 +9,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request
 
-from db_utils import DatabaseError, list_artifact_ids
+from db_utils import DatabaseError, get_provenance_by_id, list_artifact_ids
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -74,6 +74,25 @@ def create_app() -> Flask:
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(artifact_ids)
+
+    @app.get("/get_provenance")
+    def get_provenance():
+        artifact_id = request.args.get("id", "").strip()
+        if not artifact_id:
+            logging.error("Missing or empty id parameter in /get_provenance")
+            return jsonify({"error": "missing_id", "message": "Query parameter 'id' is required."}), 400
+
+        try:
+            artifact = get_provenance_by_id(app.config["DATABASE_FILE"], artifact_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /get_provenance for id %s: %s", artifact_id, exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        if artifact is None:
+            logging.error("Provenance id not found in /get_provenance: %s", artifact_id)
+            return jsonify({"error": "not_found", "message": f"No provenance record found for id '{artifact_id}'."}), 404
+
+        return jsonify(artifact)
 
     return app
 

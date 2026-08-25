@@ -1,22 +1,41 @@
 
 
 TBD
-- add type to db table
 
-create a src/python/load_bottom_line_to_db.py python script 
-that loads all the files in a directory provided through a 'in-data-dir' argument 
-that defaults to data/bottom-line-provenance
-to a sqlite database defined by schema 
-and writes out the database to a provided 'out-database-file' argument 
-that defaults to data/database/provenance_db.sqlite 
+20260825 - add WS calls 
+all a /get_provenance REST call to the flask application 
+that will take an ID as a parameter 
+and return a json object with all the data from the row of the prov_artifact table
+each field from the database row should have as key the field name and as value the field value
+put all the sql calls in methods in the python-flask-server/db_utils.py file 
+log all web service call and any errors
+make all method calls handle errors properly
+let me know if there are any concerns or issues
+
+
+build a python flask application 
+in the python-flask-server/ directory
+it will use the python-flask-server/data/provenance_db.sqlite sqlite database
+add a REST call /list that returns a json list of all the id values in the prov_artifact table
+in alphabetical order 
+the /list call will have a optional limit parameter that will default to 5000 
+put all the sql calls in methods in the python-flask-server/db_utils.py file 
+make all method calls handle errors properly
+log all REST calls into a log file specified by the environment variable WS_PROVENANCE_LOG 
+that will default to python-flask-server/logs/ws_provenance.log
+log all errors as such
+start the service on the port specified by WS_PROVENANCE_PORT environment vatiable that will default to 8080 if not set
+let me know if there are any concerns or issues
+
 
 20260824 - loading db
 modify the src/python/load_bottom_line_to_db.py python script 
-add a log file input parameter 'in-log-file'
+add a optional log file input parameter 'in-log-file'
 that will default to logs/bottom-line-provenance.log 
 If a provenance JSON is malformed, skip the file and log it
 log how many files read and how many database record created
 log each database record created with the file name read
+
 
 20260822 - modify db
 create a src/python/load_bottom_line_to_db.py python script 
