@@ -1,0 +1,40 @@
+"""SQLite utility methods for the provenance Flask service."""
+
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+
+class DatabaseError(Exception):
+    """Raised when a database operation fails."""
+
+
+def connect_database(database_file: Path) -> sqlite3.Connection:
+    try:
+        connection = sqlite3.connect(database_file)
+        connection.row_factory = sqlite3.Row
+        return connection
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Unable to connect to database {database_file}: {exc}") from exc
+
+
+def list_artifact_ids(database_file: Path, limit: int) -> list[str]:
+    if limit <= 0:
+        raise DatabaseError("Limit must be greater than zero.")
+
+    try:
+        with connect_database(database_file) as connection:
+            rows = connection.execute(
+                """
+                SELECT id
+                FROM prov_artifact
+                ORDER BY id ASC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list provenance artifact ids: {exc}") from exc
+
+    return [str(row["id"]) for row in rows]
