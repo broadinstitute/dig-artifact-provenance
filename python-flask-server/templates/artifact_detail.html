@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artifact Detail</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe5;
+      --panel: #fffdf7;
+      --ink: #1c1a16;
+      --muted: #6b6255;
+      --accent: #0e6b63;
+      --border: #d7cfbf;
+      --code: #f6f1e4;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: linear-gradient(180deg, #ede5d4 0%, var(--bg) 42%, #f7f4ec 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .panel {
+      background: rgba(255, 253, 247, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.05;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .error {
+      color: #a12626;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    dl {
+      display: grid;
+      grid-template-columns: minmax(160px, 220px) 1fr;
+      gap: 12px 18px;
+      margin: 0;
+    }
+
+    dt {
+      font-weight: 700;
+    }
+
+    dd {
+      margin: 0;
+      word-break: break-word;
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--code);
+      border: 1px solid #e5dcc8;
+      overflow: auto;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 720px) {
+      dl {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back-link" href="/">&larr; Back to Artifact Provenance</a>
+
+    <section class="panel">
+      <h1 id="title">{{ artifact_id }}</h1>
+      <div class="muted">Database row details from the provenance service.</div>
+      <div class="error" id="error-box"></div>
+      <dl id="detail-list"></dl>
+    </section>
+  </main>
+
+  <script>
+    const artifactId = {{ artifact_id|tojson }};
+
+    function formatValue(value) {
+      if (value === null) {
+        return document.createTextNode("null");
+      }
+
+      if (typeof value === "object") {
+        const pre = document.createElement("pre");
+        pre.textContent = JSON.stringify(value, null, 2);
+        return pre;
+      }
+
+      return document.createTextNode(String(value));
+    }
+
+    async function loadArtifact() {
+      const details = document.getElementById("detail-list");
+      const errorBox = document.getElementById("error-box");
+
+      try {
+        const response = await fetch(`/get_provenance?id=${encodeURIComponent(artifactId)}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.message || "Failed to load provenance record.");
+        }
+
+        details.innerHTML = "";
+
+        for (const [key, value] of Object.entries(payload)) {
+          const term = document.createElement("dt");
+          term.textContent = key;
+          const definition = document.createElement("dd");
+          definition.appendChild(formatValue(value));
+          details.appendChild(term);
+          details.appendChild(definition);
+        }
+      } catch (error) {
+        errorBox.style.display = "block";
+        errorBox.textContent = error.message;
+      }
+    }
+
+    loadArtifact();
+  </script>
+</body>
+</html>

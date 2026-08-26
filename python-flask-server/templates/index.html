@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artifact Provenance</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe5;
+      --panel: #fffdf7;
+      --ink: #1c1a16;
+      --muted: #6b6255;
+      --accent: #0e6b63;
+      --border: #d7cfbf;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: linear-gradient(180deg, #ede5d4 0%, var(--bg) 42%, #f7f4ec 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    .banner {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px 28px;
+      box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .panel {
+      margin-top: 22px;
+      background: rgba(255, 253, 247, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 22px 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .error {
+      color: #a12626;
+      display: none;
+      margin-top: 12px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+    }
+
+    li + li {
+      border-top: 1px solid #ece3d2;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .artifact-link {
+      display: block;
+      padding: 12px 0;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="banner">
+      <h1>Artifact Provenance</h1>
+      <p class="subtitle">Browse provenance artifacts from the SQLite-backed Flask service.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Artifact IDs</h2>
+        <div class="meta" id="count-label">Loading...</div>
+      </div>
+      <div class="error" id="error-box"></div>
+      <ul id="artifact-list"></ul>
+    </section>
+  </main>
+
+  <script>
+    async function loadArtifactList() {
+      const listEl = document.getElementById("artifact-list");
+      const countLabel = document.getElementById("count-label");
+      const errorBox = document.getElementById("error-box");
+
+      try {
+        const response = await fetch("/list");
+        if (!response.ok) {
+          throw new Error("Failed to load artifact ids.");
+        }
+
+        const ids = await response.json();
+        countLabel.textContent = `${ids.length} artifacts`;
+        listEl.innerHTML = "";
+
+        for (const id of ids) {
+          const item = document.createElement("li");
+          const link = document.createElement("a");
+          link.className = "artifact-link";
+          link.href = `/artifact/${encodeURIComponent(id)}`;
+          link.textContent = id;
+          item.appendChild(link);
+          listEl.appendChild(item);
+        }
+      } catch (error) {
+        countLabel.textContent = "Unavailable";
+        errorBox.style.display = "block";
+        errorBox.textContent = error.message;
+      }
+    }
+
+    loadArtifactList();
+  </script>
+</body>
+</html>

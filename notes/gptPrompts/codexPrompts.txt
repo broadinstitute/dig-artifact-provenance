@@ -2,7 +2,23 @@
 
 TBD
 
+20260826 - build web app for testing 
+build a web page in the flask application 
+the home page will have a banner 'Artifact Provenance' 
+and will use the /list web serice call to give a listing of the ids returned
+with a link to a web page returning the details of the database row 
+using the /get_prrovenance call
+the row details web page will have a link back to the home page at the top
+let me know if there are any concerns or issues
+
+
+
 20260825 - add WS calls 
+in the /get_provenance REST call
+return the prov.artifact.provenance value as the json it is stored in
+let me know if there are any concerns or issues
+
+
 all a /get_provenance REST call to the flask application 
 that will take an ID as a parameter 
 and return a json object with all the data from the row of the prov_artifact table

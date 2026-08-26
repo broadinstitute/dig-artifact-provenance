@@ -7,7 +7,7 @@ import logging
 import os
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 
 from db_utils import DatabaseError, get_provenance_by_id, list_artifact_ids
 
@@ -50,6 +50,14 @@ def create_app() -> Flask:
     @app.before_request
     def log_request() -> None:
         logging.info("REST %s %s from %s", request.method, request.full_path, request.remote_addr)
+
+    @app.get("/")
+    def home():
+        return render_template("index.html")
+
+    @app.get("/artifact/<path:artifact_id>")
+    def artifact_detail(artifact_id: str):
+        return render_template("artifact_detail.html", artifact_id=artifact_id)
 
     @app.errorhandler(Exception)
     def handle_exception(exc: Exception):
