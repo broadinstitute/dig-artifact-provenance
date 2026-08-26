@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -60,4 +61,13 @@ def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str
     if row is None:
         return None
 
-    return {key: row[key] for key in row.keys()}
+    artifact = {key: row[key] for key in row.keys()}
+
+    provenance_text = artifact.get("provenance")
+    if provenance_text:
+        try:
+            artifact["provenance"] = json.loads(provenance_text)
+        except json.JSONDecodeError as exc:
+            raise DatabaseError(f"Stored provenance for artifact {artifact_id} is not valid JSON: {exc}") from exc
+
+    return artifact
