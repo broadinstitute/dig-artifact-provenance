@@ -20,7 +20,7 @@ def connect_database(database_file: Path) -> sqlite3.Connection:
         raise DatabaseError(f"Unable to connect to database {database_file}: {exc}") from exc
 
 
-def list_artifact_ids(database_file: Path, limit: int) -> list[str]:
+def list_artifacts(database_file: Path, limit: int) -> list[dict[str, str | None]]:
     if limit <= 0:
         raise DatabaseError("Limit must be greater than zero.")
 
@@ -28,7 +28,7 @@ def list_artifact_ids(database_file: Path, limit: int) -> list[str]:
         with connect_database(database_file) as connection:
             rows = connection.execute(
                 """
-                SELECT id
+                SELECT id, name
                 FROM prov_artifact
                 ORDER BY id ASC
                 LIMIT ?
@@ -36,9 +36,9 @@ def list_artifact_ids(database_file: Path, limit: int) -> list[str]:
                 (limit,),
             ).fetchall()
     except sqlite3.Error as exc:
-        raise DatabaseError(f"Failed to list provenance artifact ids: {exc}") from exc
+        raise DatabaseError(f"Failed to list provenance artifacts: {exc}") from exc
 
-    return [str(row["id"]) for row in rows]
+    return [{"id": str(row["id"]), "name": row["name"]} for row in rows]
 
 
 def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str | None] | None:

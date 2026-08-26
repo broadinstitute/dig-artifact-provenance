@@ -133,6 +133,7 @@
     async function loadArtifact() {
       const details = document.getElementById("detail-list");
       const errorBox = document.getElementById("error-box");
+      const title = document.getElementById("title");
 
       try {
         const response = await fetch(`/get_provenance?id=${encodeURIComponent(artifactId)}`);
@@ -143,6 +144,7 @@
         }
 
         details.innerHTML = "";
+        title.textContent = payload.name || payload.id || artifactId;
 
         for (const [key, value] of Object.entries(payload)) {
           const term = document.createElement("dt");

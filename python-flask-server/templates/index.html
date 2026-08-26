@@ -116,7 +116,7 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Artifact IDs</h2>
+        <h2>Artifacts</h2>
         <div class="meta" id="count-label">Loading...</div>
       </div>
       <div class="error" id="error-box"></div>
@@ -133,19 +133,19 @@
       try {
         const response = await fetch("/list");
         if (!response.ok) {
-          throw new Error("Failed to load artifact ids.");
+          throw new Error("Failed to load artifacts.");
         }
 
-        const ids = await response.json();
-        countLabel.textContent = `${ids.length} artifacts`;
+        const artifacts = await response.json();
+        countLabel.textContent = `${artifacts.length} artifacts`;
         listEl.innerHTML = "";
 
-        for (const id of ids) {
+        for (const artifact of artifacts) {
           const item = document.createElement("li");
           const link = document.createElement("a");
           link.className = "artifact-link";
-          link.href = `/artifact/${encodeURIComponent(id)}`;
-          link.textContent = id;
+          link.href = `/artifact/${encodeURIComponent(artifact.id)}`;
+          link.textContent = artifact.name || artifact.id;
           item.appendChild(link);
           listEl.appendChild(item);
         }

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
-from db_utils import DatabaseError, get_provenance_by_id, list_artifact_ids
+from db_utils import DatabaseError, get_provenance_by_id, list_artifacts
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -76,12 +76,12 @@ def create_app() -> Flask:
             return jsonify({"error": "invalid_limit", "message": "Query parameter 'limit' must be a positive integer."}), 400
 
         try:
-            artifact_ids = list_artifact_ids(app.config["DATABASE_FILE"], limit)
+            artifacts = list_artifacts(app.config["DATABASE_FILE"], limit)
         except DatabaseError as exc:
             logging.error("Database error in /list: %s", exc)
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
-        return jsonify(artifact_ids)
+        return jsonify(artifacts)
 
     @app.get("/get_provenance")
     def get_provenance():
