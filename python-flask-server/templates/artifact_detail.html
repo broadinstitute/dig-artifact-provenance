@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Artifact Detail</title>
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -67,6 +68,19 @@
       margin-bottom: 16px;
     }
 
+    .field-block + .field-block {
+      margin-top: 18px;
+    }
+
+    .field-label {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .field-value {
+      word-break: break-word;
+    }
+
     dl {
       display: grid;
       grid-template-columns: minmax(160px, 220px) 1fr;
@@ -94,9 +108,37 @@
       line-height: 1.45;
     }
 
+    .graph-shell {
+      border: 1px solid #e5dcc8;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #faf5ea 0%, #f6f1e4 100%);
+      overflow: hidden;
+    }
+
+    #provenance-graph {
+      width: 100%;
+      height: 520px;
+    }
+
+    .graph-meta {
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5dcc8;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .graph-empty {
+      padding: 14px 16px;
+      color: var(--muted);
+    }
+
     @media (max-width: 720px) {
       dl {
         grid-template-columns: 1fr;
+      }
+
+      #provenance-graph {
+        height: 420px;
       }
     }
   </style>
@@ -109,7 +151,7 @@
       <h1 id="title">{{ artifact_id }}</h1>
       <div class="muted">Database row details from the provenance service.</div>
       <div class="error" id="error-box"></div>
-      <dl id="detail-list"></dl>
+      <div id="detail-list"></div>
     </section>
   </main>
 
@@ -130,6 +172,208 @@
       return document.createTextNode(String(value));
     }
 
+    function appendField(container, key, value) {
+      const block = document.createElement("section");
+      block.className = "field-block";
+
+      const label = document.createElement("div");
+      label.className = "field-label";
+      label.textContent = key;
+
+      const fieldValue = document.createElement("div");
+      fieldValue.className = "field-value";
+      fieldValue.appendChild(formatValue(value));
+
+      block.appendChild(label);
+      block.appendChild(fieldValue);
+      container.appendChild(block);
+    }
+
+    function buildGraphElements(provenance) {
+      const shell = document.createElement("section");
+      shell.className = "field-block";
+
+      const label = document.createElement("div");
+      label.className = "field-label";
+      label.textContent = "graph";
+      shell.appendChild(label);
+
+      const edges = Array.isArray(provenance?.edges) ? provenance.edges : [];
+      const rawNodes = Array.isArray(provenance?.graph?.nodes) ? provenance.graph.nodes : [];
+      const nodeIndex = new Map(rawNodes.map((node) => [node.id, node]));
+
+      const graphShell = document.createElement("div");
+      graphShell.className = "graph-shell";
+
+      const meta = document.createElement("div");
+      meta.className = "graph-meta";
+      meta.textContent = `${rawNodes.length || 0} nodes, ${edges.length} edges`;
+      graphShell.appendChild(meta);
+
+      if (edges.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "graph-empty";
+        empty.textContent = "No provenance edges are available for this artifact.";
+        graphShell.appendChild(empty);
+        shell.appendChild(graphShell);
+        return shell;
+      }
+
+      const graphContainer = document.createElement("div");
+      graphContainer.id = "provenance-graph";
+      graphShell.appendChild(graphContainer);
+      shell.appendChild(graphShell);
+
+      const nodeIds = new Set();
+      const elements = [];
+
+      for (const edge of edges) {
+        if (edge.source) {
+          nodeIds.add(edge.source);
+        }
+        if (edge.target) {
+          nodeIds.add(edge.target);
+        }
+      }
+
+      for (const nodeId of nodeIds) {
+        const node = nodeIndex.get(nodeId) || {};
+        elements.push({
+          data: {
+            id: nodeId,
+            label: node.label || node.name || node.stage_name || nodeId,
+            dapperClass: node.dapper_class || "Unknown",
+            directoryKind: node.directory_kind || "",
+          },
+        });
+      }
+
+      for (const edge of edges) {
+        if (!edge.source || !edge.target) {
+          continue;
+        }
+
+        elements.push({
+          data: {
+            id: edge.id || `${edge.source}-${edge.target}-${edge.relationship || "edge"}`,
+            source: edge.source,
+            target: edge.target,
+            label: edge.relationship || "related_to",
+          },
+        });
+      }
+
+      setTimeout(() => {
+        cytoscape({
+          container: graphContainer,
+          elements,
+          style: [
+            {
+              selector: "node",
+              style: {
+                "background-color": "#0e6b63",
+                "border-width": 2,
+                "border-color": "#094842",
+                "color": "#111",
+                "label": "data(label)",
+                "font-size": 10,
+                "text-wrap": "wrap",
+                "text-max-width": 120,
+                "text-valign": "bottom",
+                "text-margin-y": 10,
+                "width": 22,
+                "height": 22,
+              },
+            },
+            {
+              selector: 'node[dapperClass = "Activity"]',
+              style: {
+                "background-color": "#d17b0f",
+                "border-color": "#9c5704",
+                "shape": "round-rectangle",
+                "width": 28,
+                "height": 28,
+              },
+            },
+            {
+              selector: 'node[dapperClass = "DrsObject"]',
+              style: {
+                "background-color": "#225f9d",
+                "border-color": "#153f68",
+                "shape": "diamond",
+              },
+            },
+            {
+              selector: 'node[dapperClass = "Dataset"]',
+              style: {
+                "background-color": "#59603a",
+                "border-color": "#3c4126",
+                "shape": "ellipse",
+              },
+            },
+            {
+              selector: 'node[dapperClass = "C2M2File"]',
+              style: {
+                "background-color": "#7b4c88",
+                "border-color": "#573160",
+                "shape": "hexagon",
+              },
+            },
+            {
+              selector: 'node[directoryKind = "open_data_endpoint"]',
+              style: {
+                "border-width": 4,
+                "border-color": "#111",
+              },
+            },
+            {
+              selector: "edge",
+              style: {
+                "width": 2,
+                "line-color": "#8b8a83",
+                "target-arrow-color": "#8b8a83",
+                "target-arrow-shape": "triangle",
+                "curve-style": "bezier",
+                "label": "data(label)",
+                "font-size": 9,
+                "text-background-color": "#fffdf7",
+                "text-background-opacity": 1,
+                "text-background-padding": 2,
+                "text-rotation": "autorotate",
+              },
+            },
+          ],
+          layout: {
+            name: "cose",
+            animate: false,
+            fit: true,
+            padding: 24,
+            nodeRepulsion: 180000,
+            idealEdgeLength: 120,
+          },
+        });
+      }, 0);
+
+      return shell;
+    }
+
+    function renderArtifactDetails(container, payload) {
+      container.innerHTML = "";
+
+      appendField(container, "id", payload.id);
+      appendField(container, "pipeline_type", payload.pipeline_type);
+      container.appendChild(buildGraphElements(payload.provenance));
+      appendField(container, "provenance", payload.provenance);
+
+      for (const [key, value] of Object.entries(payload)) {
+        if (["id", "name", "pipeline_type", "provenance"].includes(key)) {
+          continue;
+        }
+
+        appendField(container, key, value);
+      }
+    }
+
     async function loadArtifact() {
       const details = document.getElementById("detail-list");
       const errorBox = document.getElementById("error-box");
@@ -143,17 +387,8 @@
           throw new Error(payload.message || "Failed to load provenance record.");
         }
 
-        details.innerHTML = "";
         title.textContent = payload.name || payload.id || artifactId;
-
-        for (const [key, value] of Object.entries(payload)) {
-          const term = document.createElement("dt");
-          term.textContent = key;
-          const definition = document.createElement("dd");
-          definition.appendChild(formatValue(value));
-          details.appendChild(term);
-          details.appendChild(definition);
-        }
+        renderArtifactDetails(details, payload);
       } catch (error) {
         errorBox.style.display = "block";
         errorBox.textContent = error.message;

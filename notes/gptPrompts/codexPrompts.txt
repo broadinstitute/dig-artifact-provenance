@@ -1,47 +1,36 @@
 
 
-TBD
-
-20260826 - build web app for testing 
-build a web page in the flask application 
-the home page will have a banner 'Artifact Provenance' 
-and will use the /list web serice call to give a listing of the ids returned
-with a link to a web page returning the details of the database row 
-using the /get_prrovenance call
-the row details web page will have a link back to the home page at the top
-let me know if there are any concerns or issues
+THESE ARE THE CODEX PROMPTS FOR LOADING DATA, CREATING THE DATABASE 
 
 
+TBD - always update .md file 
+- update processs to skip saving to files 
+- update process to create edges/nodes with shared nodes, node location, drs_id 
+- research DRS and whether server needs to be root path 
 
-20260825 - add WS calls 
-in the /get_provenance REST call
-return the prov.artifact.provenance value as the json it is stored in
-let me know if there are any concerns or issues
-
-
-all a /get_provenance REST call to the flask application 
-that will take an ID as a parameter 
-and return a json object with all the data from the row of the prov_artifact table
-each field from the database row should have as key the field name and as value the field value
-put all the sql calls in methods in the python-flask-server/db_utils.py file 
-log all web service call and any errors
-make all method calls handle errors properly
-let me know if there are any concerns or issues
+- create drs WS 
+  - insert method with real location and drs id 
+  - verify with 1.4 standard 
 
 
-build a python flask application 
-in the python-flask-server/ directory
-it will use the python-flask-server/data/provenance_db.sqlite sqlite database
-add a REST call /list that returns a json list of all the id values in the prov_artifact table
-in alphabetical order 
-the /list call will have a optional limit parameter that will default to 5000 
-put all the sql calls in methods in the python-flask-server/db_utils.py file 
-make all method calls handle errors properly
-log all REST calls into a log file specified by the environment variable WS_PROVENANCE_LOG 
-that will default to python-flask-server/logs/ws_provenance.log
-log all errors as such
-start the service on the port specified by WS_PROVENANCE_PORT environment vatiable that will default to 8080 if not set
-let me know if there are any concerns or issues
+20260829 - update edges/nodes 
+update the sqlite schema file at notes/schema/database/provenance_db.sql 
+write a sql statement to create a sqlite table prov_node
+with field id which is primary key text,
+field name which is a text non null,
+field dcc_location which is a text non null,
+field drs_id which is a text nullable,
+field description which is a text nullable
+
+update the sqlite schema file at notes/schema/database/provenance_db.sql 
+write a sql statement to create a sqlite table prov_edge
+with field id which is primary key text,
+field name which is a text non null,
+field description which is a text nullable,
+a field source which is text non nullable and will reference prov_node.id,
+a field target which is text non nullable and will reference prov_node.id,
+field predicate which is a text non null
+
 
 
 20260824 - loading db
