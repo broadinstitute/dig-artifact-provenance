@@ -125,13 +125,16 @@
   </main>
 
   <script>
+    const listUrl = {{ url_for('list_ids')|tojson }};
+    const artifactDetailTemplate = {{ url_for('artifact_detail', artifact_id='__ARTIFACT_ID__')|tojson }};
+
     async function loadArtifactList() {
       const listEl = document.getElementById("artifact-list");
       const countLabel = document.getElementById("count-label");
       const errorBox = document.getElementById("error-box");
 
       try {
-        const response = await fetch("/list");
+        const response = await fetch(listUrl);
         if (!response.ok) {
           throw new Error("Failed to load artifacts.");
         }
@@ -144,7 +147,7 @@
           const item = document.createElement("li");
           const link = document.createElement("a");
           link.className = "artifact-link";
-          link.href = `/artifact/${encodeURIComponent(artifact.id)}`;
+          link.href = artifactDetailTemplate.replace("__ARTIFACT_ID__", encodeURIComponent(artifact.id));
           link.textContent = artifact.name || artifact.id;
           item.appendChild(link);
           listEl.appendChild(item);

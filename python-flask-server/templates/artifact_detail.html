@@ -145,7 +145,7 @@
 </head>
 <body>
   <main class="page">
-    <a class="back-link" href="/">&larr; Back to Artifact Provenance</a>
+    <a class="back-link" href="{{ url_for('home') }}">&larr; Back to Artifact Provenance</a>
 
     <section class="panel">
       <h1 id="title">{{ artifact_id }}</h1>
@@ -157,6 +157,7 @@
 
   <script>
     const artifactId = {{ artifact_id|tojson }};
+    const getProvenanceUrl = {{ url_for('get_provenance')|tojson }};
 
     function formatValue(value) {
       if (value === null) {
@@ -380,7 +381,9 @@
       const title = document.getElementById("title");
 
       try {
-        const response = await fetch(`/get_provenance?id=${encodeURIComponent(artifactId)}`);
+        const requestUrl = new URL(getProvenanceUrl, window.location.origin);
+        requestUrl.searchParams.set("id", artifactId);
+        const response = await fetch(requestUrl);
         const payload = await response.json();
 
         if (!response.ok) {
