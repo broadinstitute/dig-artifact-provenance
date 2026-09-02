@@ -125,8 +125,8 @@
   </main>
 
   <script>
-    const listUrl = {{ url_for('list_ids')|tojson }};
-    const artifactDetailTemplate = {{ url_for('artifact_detail', artifact_id='__ARTIFACT_ID__')|tojson }};
+    const listUrl = new URL("list", window.location.href).toString();
+    const artifactBaseUrl = new URL("artifact/", window.location.href).toString();
 
     async function loadArtifactList() {
       const listEl = document.getElementById("artifact-list");
@@ -147,7 +147,7 @@
           const item = document.createElement("li");
           const link = document.createElement("a");
           link.className = "artifact-link";
-          link.href = artifactDetailTemplate.replace("__ARTIFACT_ID__", encodeURIComponent(artifact.id));
+          link.href = artifactBaseUrl + encodeURIComponent(artifact.id);
           link.textContent = artifact.name || artifact.id;
           item.appendChild(link);
           listEl.appendChild(item);
