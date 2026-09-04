@@ -1,0 +1,25 @@
+
+
+TBD - update edges/nodes 
+update the sqlite schema file at notes/schema/database/provenance_db.sql 
+write a sql statement to create a sqlite table prov_node
+with field id which is primary key text,
+field name which is a text non null,
+field dcc_location which is a text non null,
+field drs_id which is a text nullable,
+field description which is a text nullable
+
+
+20260904 - create drs table
+update the sqlite schema file at notes/schema/database/provenance_db.sql 
+write a sql statement to create a sqlite table drs_artifact
+with field id which is primary key text,
+field dcc_location which is a text non null,
+field artifact_type which is a text nullable,
+field description which is a text nullable
+
+
+
+
+
+

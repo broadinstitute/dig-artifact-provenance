@@ -5,3 +5,10 @@ CREATE TABLE prov_artifact (
     name TEXT NOT NULL,
     description TEXT
 );
+
+CREATE TABLE drs_artifact (
+    id TEXT PRIMARY KEY,
+    dcc_location TEXT NOT NULL,
+    artifact_type TEXT,
+    description TEXT
+);
