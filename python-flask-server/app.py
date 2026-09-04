@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 
@@ -101,6 +102,10 @@ def create_app() -> Flask:
             return jsonify({"error": "not_found", "message": f"No provenance record found for id '{artifact_id}'."}), 404
 
         return jsonify(artifact)
+
+    @app.get("/drs/v1/objects/")
+    def drs_objects_root():
+        return jsonify({"current_time": datetime.now(timezone.utc).isoformat()})
 
     return app
 
