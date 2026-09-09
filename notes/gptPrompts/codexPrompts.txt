@@ -13,15 +13,16 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
-20260829 - update edges/nodes 
-update the sqlite schema file at notes/schema/database/provenance_db.sql 
-write a sql statement to create a sqlite table prov_node
-with field id which is primary key text,
-field name which is a text non null,
-field dcc_location which is a text non null,
-field drs_id which is a text nullable,
-field description which is a text nullable
 
+20260908 - update artifact_id to use verwsion 0.1.0 of dapper 
+update script src/python/load_bottom_line_to_db.py python script
+reference the https://github.com/broadinstitute/dapper/releases/tag/0.1.0 version
+use the computed identifier section to update the relevant identifiers in the provenance generation
+let me know if there are any concerns or issues
+
+
+
+20260907 - add drs table 
 update the sqlite schema file at notes/schema/database/provenance_db.sql 
 write a sql statement to create a sqlite table prov_edge
 with field id which is primary key text,

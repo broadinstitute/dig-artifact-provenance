@@ -12,3 +12,4 @@ CREATE TABLE drs_artifact (
     artifact_type TEXT,
     description TEXT
 );
+

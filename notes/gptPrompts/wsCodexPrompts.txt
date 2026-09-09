@@ -5,6 +5,25 @@ TBD
 - add port startup log 
 
 
+20260902 - drs 
+add a GET endpoint /drs/v1/objects/  to the app.py 
+that returns the current time as a json object
+let me know if there are any concerns or issues
+
+
+
+20280902 - bug with nginx
+the application is deployed at root url address https://translator.broadinstitute.org/artifact_provenance/
+yet the home page tries to load the list at the GET call
+https://translator.broadinstitute.org/list which is causing an error
+fix so that it works both when deployed to the new address and when run as localhost in dev 
+
+
+20260831 - bug on loading data behind ngnis
+once the application is deployed behind a nginx proxy, I get a 
+`Failed to load artifacts` error message on the home page
+
+
 20260826 - build web app for testing 
 in the web application details page, add a graph display element 
 below the pipeline_type element but above the provenance element
