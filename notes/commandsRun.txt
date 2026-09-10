@@ -1,0 +1,20 @@
+
+
+20260910 - one step run 
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3 \
+--in-database python-flask-server/data/provenance_db.sqlite \
+--in-log-file logs/onestep_bottom_line.log \
+--out-graph-file data/graph/onestep_graph.json
+
+
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3
+--in-database /tmp/onestep_provenance_db.sqlite \
+--in-log-file /tmp/onestep_bottom_line.log \
+--save-provenance-files \
+--out-dir /tmp/onestep_saved_provenance \
+--out-graph-file /tmp/onestep_graph.json
+
+
+

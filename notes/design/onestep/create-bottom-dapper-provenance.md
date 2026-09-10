@@ -6,10 +6,13 @@
 
 It combines the behavior of:
 
-- [`create_bottom_line_graph.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/create_bottom_line_graph.py)
-- [`create_bottom_line_dapper.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/create_bottom_line_dapper.py)
+- [`create_bottom_line_graph.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/individualsteps/create_bottom_line_graph.py)
+- [`create_bottom_line_dapper.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/individualsteps/create_bottom_line_dapper.py)
+- [`load_bottom_line_to_db.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/individualsteps/load_bottom_line_to_db.py)
 
-The script builds the computed-id bottom-line graph in memory, finds each published open-data endpoint, walks its upstream provenance subgraph, and writes one DAPPER-oriented JSON provenance document per endpoint.
+The script builds the computed-id bottom-line graph in memory, creates one DAPPER-oriented provenance document per published open-data endpoint, and loads those documents into the SQLite `prov_artifact` table.
+
+Writing the individual provenance JSON files is optional.
 
 ## How To Run
 
@@ -24,7 +27,10 @@ There are no mandatory command-line arguments.
 Optional arguments:
 
 - `--s3-listing-dir`: directory containing S3 listing snapshot text files. Default: `data/s3`
-- `--out-dir`: output directory for DAPPER provenance JSON files. Default: `data/bottom-line-provenance`
+- `--in-database`: SQLite database file to load. Default: `data/database/provenance_db.sqlite`
+- `--in-log-file`: log file for loader activity. Default: `logs/bottom-line-provenance.log`
+- `--save-provenance-files`: write individual provenance JSON files. Default: disabled
+- `--out-dir`: output directory for DAPPER provenance JSON files when `--save-provenance-files` is set. Default: `data/bottom-line-provenance`
 - `--out-graph-file`: optional path for writing the intermediate computed-id graph JSON. Default: not written
 
 Example with explicit arguments:
@@ -32,6 +38,9 @@ Example with explicit arguments:
 ```bash
 python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
   --s3-listing-dir data/s3 \
+  --in-database data/database/provenance_db.sqlite \
+  --in-log-file logs/bottom-line-provenance.log \
+  --save-provenance-files \
   --out-dir data/bottom-line-provenance \
   --out-graph-file data/graph/provenance_graph.json
 ```
@@ -59,7 +68,25 @@ If any expected listing file is missing, the script prints a warning that includ
 
 ## Outputs
 
-The primary output is one JSON file per open-data bottom-line endpoint.
+The primary output is a refreshed set of SQLite records in the `prov_artifact` table.
+
+Default database:
+
+- [`data/database/provenance_db.sqlite`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/data/database/provenance_db.sqlite)
+
+Before loading, existing rows with `pipeline_type = 'bottom-line'` are deleted. Each generated provenance document is inserted with:
+
+- `id`: the output provenance filename stem
+- `pipeline_type`: `bottom-line`
+- `provenance`: the generated provenance document as compact JSON text
+- `name`: the end-result description, usually from the first DRS object
+- `description`: `NULL`
+
+The database file must already exist and contain the `prov_artifact` table.
+
+## Optional File Outputs
+
+When `--save-provenance-files` is set, the script also writes one JSON file per open-data bottom-line endpoint.
 
 Default output directory:
 
@@ -85,14 +112,29 @@ dig-open-bottom-line-analysis-stg_bottom-line_AA_2hrGadjBMI.sumstats.tsv.gz.json
 
 If `--out-graph-file` is provided, the script also writes the intermediate graph JSON to that path. This is useful for debugging or for keeping the one-step output comparable to the original two-step process.
 
+## Logging
+
+The script logs database-load activity to the path passed through `--in-log-file`.
+
+Default log file:
+
+- [`logs/bottom-line-provenance.log`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/logs/bottom-line-provenance.log)
+
+The log includes:
+
+- each generated provenance record prepared for database insertion
+- total generated documents
+- total database records created
+
 ## Processing Flow
 
-The script performs four main operations.
+The script performs five main operations.
 
 1. Build the bottom-line graph from S3 listing snapshots by calling `build_graph()` from `create_bottom_line_graph.py`.
 2. Use the graph generator's DAPPER 0.1.0 computed identifier pass so graph nodes use `dapper:{ClassName}.{digest}` ids.
 3. Select root nodes where `directory_kind == "open_data_endpoint"` and `location_path` starts with `s3://dig-open-bottom-line-analysis-stg/`.
-4. Walk each root node's upstream provenance subgraph through `WasGeneratedBy`, `WasDerivedFrom`, and `Used` edges, then write a DAPPER-style document for that root.
+4. Walk each root node's upstream provenance subgraph through `WasGeneratedBy`, `WasDerivedFrom`, and `Used` edges, then build a DAPPER-style document for that root.
+5. Load the generated documents into SQLite and optionally write each document as an individual JSON file.
 
 ## Identifier Behavior
 
@@ -119,19 +161,21 @@ Each generated provenance document includes:
 
 ## Relationship To Existing Scripts
 
-This script is intended for operational convenience when the intermediate graph file is not needed as a separate artifact.
+This script is intended for operational convenience when the intermediate graph file and individual provenance files are not required as separate artifacts.
 
 Use `create_bottom_line_graph.py` and `create_bottom_line_dapper.py` separately when:
 
 - you want to inspect or version the full graph before export
 - you want to reuse the graph for multiple downstream exporters
 - you want to debug graph construction independently from document export
+- you want file generation without database loading
 
 Use this one-step script when:
 
-- you want the final per-endpoint DAPPER provenance files directly
+- you want SQLite loading as the primary output
 - the graph is only an intermediate representation
 - a single command is easier for pipeline automation
+- writing individual provenance files should be optional instead of mandatory
 
 ## Current Limitations
 
@@ -139,7 +183,8 @@ The script intentionally delegates graph construction and DAPPER section mapping
 
 Known limitations:
 
+- it does not create or migrate the SQLite schema
 - it does not validate the generated JSON against a formal DAPPER schema implementation
 - it does not compute file checksums, sizes, or object version metadata
 - it only exports provenance for open-data endpoints under `s3://dig-open-bottom-line-analysis-stg/`
-- it writes existing output filenames again if rerun against the same output directory
+- it overwrites matching output filenames if `--save-provenance-files` is used against an existing output directory
