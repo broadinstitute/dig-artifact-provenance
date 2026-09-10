@@ -13,11 +13,24 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
+20260910 - make creating prov and loading to db one step
+when creating the provenance file, use the https://github.com/broadinstitute/dapper/releases/tag/0.1.0 dapper.yaml schema file 
+as the annotation_source
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+to add in the functionality of the src/python/individualsteps/load_bottom_line_to_db.py python script 
+keep the option to save the individual provenance json files as an option 
+update the script commnents and the notes/design/onestep/create-bottom-dapper-provenance.md markdown file as needed
+let me know if there are any concerns or issues
+
+
 20260910 - document db loading
 ignore the previous task; the new python script has been deleted
 for the src/python/load_bottom_line_to_db.py python script 
-create a markdown file notes/design/individualsteps/load-bottom-line-to-db.md as documentation on the script
+update the markdown file notes/design/individualsteps/load-bottom-line-to-db.md as documentation on the src/python/load_bottom_line_to_db.py script
 in the python script top comments and the md file, insert how to run the script with arguments
+document which arguments are mandatory and any default values any aruguments have
 let me know if there are any concerns or issues
 
 

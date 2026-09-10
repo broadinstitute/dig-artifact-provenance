@@ -141,6 +141,10 @@ The generated identifiers reference DAPPER 0.1.0:
 
 - `https://github.com/broadinstitute/dapper/releases/tag/0.1.0`
 
+The graph uses the same DAPPER 0.1.0 schema release as `annotation_source`:
+
+- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+
 ### Stage nodes
 
 Stage nodes represent pipeline `Activity` objects.

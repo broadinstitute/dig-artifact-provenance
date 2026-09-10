@@ -25,7 +25,7 @@ import sqlite3
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DATA_DIR = REPO_ROOT / "data" / "bottom-line-provenance"
 DEFAULT_DATABASE = REPO_ROOT / "data" / "database" / "provenance_db.sqlite"
 DEFAULT_LOG_FILE = REPO_ROOT / "logs" / "bottom-line-provenance.log"

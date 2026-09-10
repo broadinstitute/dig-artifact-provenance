@@ -24,7 +24,7 @@ The implementation uses:
 - the current S3 listing snapshots under ``data/s3``
 - bottom-line/intake path conventions validated against the public
   ``broadinstitute/dig-aggregator-methods`` repository
-- DAPPER-oriented node and edge annotations from the local recommendations
+- DAPPER-oriented node and edge annotations from the DAPPER 0.1.0 schema
 - DAPPER 0.1.0 computed identifiers from
   https://github.com/broadinstitute/dapper/releases/tag/0.1.0
 """
@@ -42,13 +42,14 @@ from pathlib import Path
 from typing import DefaultDict, Dict, Iterable, List, Optional, Set, Tuple
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = REPO_ROOT / "data"
 S3_DIR = DATA_DIR / "s3"
 OUTPUT_PATH = DATA_DIR / "graph" / "provenance_graph.json"
 GITHUB_REPO_ROOT = "https://github.com/broadinstitute/dig-aggregator-methods/blob/master"
 DAPPER_RELEASE = "https://github.com/broadinstitute/dapper/releases/tag/0.1.0"
 DAPPER_ID_PROFILE = "DAPPER-ID-1"
+DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml"
 
 LISTING_FILENAMES = {
     "variants_raw": "dig-anal-variants_raw.txt",
@@ -71,8 +72,6 @@ REQUIRED_LISTINGS = {
     "largest": "s3://dig-analysis-data/out/metaanalysis/largest/",
     "open_data": "s3://dig-open-bottom-line-analysis-stg/bottom-line/",
 }
-
-DAPPER_NOTE = "notes/gptRecommendations/bottom-line-dapper.md"
 
 HASHABLE_FIELDS_BY_DAPPER_CLASS = {
     "Activity": [
@@ -343,7 +342,7 @@ def add_stage(
         phenotype=phenotype,
         ancestry=ancestry,
         observed_from_listing=observed,
-        annotation_source=DAPPER_NOTE,
+        annotation_source=DAPPER_SCHEMA_ANNOTATION_SOURCE,
     )
 
 
@@ -381,7 +380,7 @@ def add_directory(
         observed_from_listing=observed,
         inferred_from_code=inferred_from,
         published_filename=published_filename,
-        annotation_source=DAPPER_NOTE,
+        annotation_source=DAPPER_SCHEMA_ANNOTATION_SOURCE,
     )
 
 
@@ -402,7 +401,7 @@ def add_edge(
         "relationship": edge_class,
         "dapper_edge_class": edge_class,
         "predicate": predicate,
-        "annotation_source": DAPPER_NOTE,
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
     if edge_role:
         payload["edge_role"] = edge_role

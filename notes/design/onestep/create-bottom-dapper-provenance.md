@@ -154,10 +154,17 @@ Each generated provenance document includes:
 
 - `dapper_release`
 - `dapper_id_profile`
+- `annotation_source`
 - `root_node_id`
 - `root_location_path`
 - DAPPER-style arrays for datasets, DRS objects, activities, C2M2 files, and edges
 - the raw root-specific provenance subgraph under `graph`
+
+`annotation_source` is set to the DAPPER 0.1.0 schema reference:
+
+- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+
+The generated document also keeps `recommendation_reference` for the local bottom-line modeling guidance.
 
 ## Relationship To Existing Scripts
 

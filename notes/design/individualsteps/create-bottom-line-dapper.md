@@ -97,6 +97,12 @@ Those nodes and edges form the provenance subgraph for a single published endpoi
 
 The export uses the graph node field `dapper_class` to place graph nodes into DAPPER-style sections.
 
+Generated provenance documents and exported section records use the DAPPER 0.1.0 schema reference as `annotation_source`:
+
+- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+
+The local recommendation note remains in `recommendation_reference` to document project-specific modeling choices.
+
 ### `Dataset`
 
 Nodes marked `dapper_class == "Dataset"` are exported into the `datasets` array.

@@ -58,6 +58,7 @@ for import_dir in (PYTHON_DIR, INDIVIDUALSTEPS_DIR):
         sys.path.insert(0, str(import_dir))
 
 from create_bottom_line_dapper import (  # noqa: E402
+    DAPPER_SCHEMA_ANNOTATION_SOURCE,
     RECOMMENDATION_REF,
     build_outgoing_edges,
     collect_provenance_subgraph,
@@ -171,6 +172,7 @@ def build_documents_from_graph(graph: dict, graph_reference: str) -> list[tuple[
         document = {
             "reference_graph_file": graph_reference,
             "recommendation_reference": RECOMMENDATION_REF,
+            "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
             "dapper_release": graph.get("dapper_release", DAPPER_RELEASE),
             "dapper_id_profile": graph.get("dapper_id_profile", DAPPER_ID_PROFILE),
             "root_node_id": root_node["id"],

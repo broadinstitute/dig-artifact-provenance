@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Export DAPPER-style provenance JSON files for bottom-line open-data outputs."""
+"""Export DAPPER-style provenance JSON files for bottom-line open-data outputs.
+
+Generated provenance documents use the DAPPER 0.1.0 schema reference as
+``annotation_source``:
+
+    https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml
+"""
 
 from __future__ import annotations
 
@@ -10,10 +16,11 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Set
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT = REPO_ROOT / "data" / "graph" / "provenance_graph.json"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "bottom-line-provenance"
 RECOMMENDATION_REF = "notes/gptRecommendations/bottom-line-dapper.md"
+DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml"
 
 BACKWARD_RELATIONSHIPS = {"WasGeneratedBy", "WasDerivedFrom", "Used"}
 
@@ -101,7 +108,7 @@ def make_dataset_entry(node: dict, generated_by_map: Dict[str, List[str]]) -> di
         "location_path": node.get("location_path"),
         "phenotype": node.get("phenotype"),
         "ancestry": node.get("ancestry"),
-        "annotation_source": node.get("annotation_source"),
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
     generated_by = generated_by_map.get(node["id"], [])
     if generated_by:
@@ -121,7 +128,7 @@ def make_drs_entry(node: dict, generated_by_map: Dict[str, List[str]]) -> dict:
         "location_path": location,
         "description": node.get("label"),
         "published_filename": node.get("published_filename") or basename_from_location(location),
-        "annotation_source": node.get("annotation_source"),
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
     generated_by = generated_by_map.get(node["id"], [])
     if generated_by:
@@ -141,7 +148,7 @@ def make_activity_entry(node: dict) -> dict:
         "ancestry": node.get("ancestry"),
         "dataset": node.get("dataset"),
         "method": node.get("method"),
-        "annotation_source": node.get("annotation_source"),
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
 
 
@@ -160,7 +167,7 @@ def make_c2m2_file_entry(node: dict, generated_by_map: Dict[str, List[str]]) -> 
         "dataset": node.get("dataset"),
         "method": node.get("method"),
         "rare": node.get("rare"),
-        "annotation_source": node.get("annotation_source"),
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
     generated_by = generated_by_map.get(node["id"], [])
     if generated_by:
@@ -175,7 +182,7 @@ def make_edge_entry(edge: dict) -> dict:
         "target": edge["target"],
         "relationship": edge.get("relationship"),
         "predicate": edge.get("predicate"),
-        "annotation_source": edge.get("annotation_source"),
+        "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
     }
     if edge.get("edge_role"):
         entry["edge_role"] = edge["edge_role"]
@@ -223,6 +230,7 @@ def export_documents(graph_path: Path, out_dir: Path) -> int:
         document = {
             "reference_graph_file": str(graph_path),
             "recommendation_reference": RECOMMENDATION_REF,
+            "annotation_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
             "root_node_id": root_node["id"],
             "root_location_path": root_node.get("location_path"),
             "datasets": datasets,
