@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Load bottom-line provenance JSON files into the SQLite provenance database."""
+"""Load bottom-line provenance JSON files into the SQLite provenance database.
+
+Run from the repository root:
+
+    python3 src/python/load_bottom_line_to_db.py
+
+Required arguments:
+
+- none
+
+Optional arguments and defaults:
+
+- ``--in-data-dir``: ``data/bottom-line-provenance``
+- ``--in-database``: ``data/database/provenance_db.sqlite``
+- ``--in-log-file``: ``logs/bottom-line-provenance.log``
+"""
 
 from __future__ import annotations
 

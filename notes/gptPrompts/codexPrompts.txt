@@ -13,7 +13,22 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
-20260908 - update artifact_id to use verwsion 0.1.0 of dapper - right script this time
+20260910 - document db loading
+ignore the previous task; the new python script has been deleted
+for the src/python/load_bottom_line_to_db.py python script 
+create a markdown file notes/design/individualsteps/load-bottom-line-to-db.md as documentation on the script
+in the python script top comments and the md file, insert how to run the script with arguments
+let me know if there are any concerns or issues
+
+
+20260909 - update artifact_id to use verwsion 0.1.0 of dapper - right script this time
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+so that it uses as reference the https://github.com/broadinstitute/dapper/releases/tag/0.1.0 version
+for all provenance document creation, as far as fields and data
+specify what format/data changes are being implemented
+let me know if there are any concerns or issues
+
+
 create the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
 combine the src/python/create_bottom_line_graph.py and src/python/create_bottom_line_dapper.py scripts
 so that you take in inputs of the create_bottom_line_graph.py script 
