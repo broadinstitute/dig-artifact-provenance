@@ -14,7 +14,18 @@ TBD - always update .md file
 
 
 20260908 - update artifact_id to use verwsion 0.1.0 of dapper - right script this time
-ignore the previous task; the changes havee been reversed
+create the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+combine the src/python/create_bottom_line_graph.py and src/python/create_bottom_line_dapper.py scripts
+so that you take in inputs of the create_bottom_line_graph.py script 
+and produce the outputs of the create_bottom_line_dapper.py script
+simplify as needed
+create a markdown file notes/design/create-bottom-dapper-provenance.md as documentation on the new create_bottom_line_dapper_provenance.py script
+in the python script top comments and the md file, insert how to run the script with arguments
+specify which arguments are mandatory and what are the default values for the arguments
+let me know if there are any concerns or issues
+
+
+ignore the previous task; the changes have been reversed
 update the src/python/create_bottom_line_graph.py python script 
 reference the https://github.com/broadinstitute/dapper/releases/tag/0.1.0 version
 use the computed identifier section to update the relevant identifiers in the provenance generation
@@ -22,6 +33,7 @@ update the markdown file notes/design/create-bottom-line-graph.md as needed
 in the python script top comments and the md file, insert how to run the script with arguments
 specify which arguments are mandatory and what are the default values for the arguments
 let me know if there are any concerns or issues
+
 
 
 
