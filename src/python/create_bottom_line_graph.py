@@ -6,16 +6,34 @@ The graph is exported to ``data/graph/provenance_graph.json`` and contains:
 - ``nodes``: stage and S3 directory/file artifact nodes
 - ``edges``: provenance-style dependency links
 
+Run from the repository root:
+
+    python3 src/python/create_bottom_line_graph.py
+
+Required arguments:
+
+- none
+
+Optional arguments and defaults:
+
+- ``--out-graph-file``: ``data/graph/provenance_graph.json``
+- ``--s3-listing-dir``: ``data/s3``
+
 The implementation uses:
 
 - the current S3 listing snapshots under ``data/s3``
 - bottom-line/intake path conventions validated against the public
   ``broadinstitute/dig-aggregator-methods`` repository
 - DAPPER-oriented node and edge annotations from the local recommendations
+- DAPPER 0.1.0 computed identifiers from
+  https://github.com/broadinstitute/dapper/releases/tag/0.1.0
 """
 
 from __future__ import annotations
 
+import argparse
+import base64
+import hashlib
 import json
 import re
 from collections import defaultdict
@@ -29,16 +47,18 @@ DATA_DIR = REPO_ROOT / "data"
 S3_DIR = DATA_DIR / "s3"
 OUTPUT_PATH = DATA_DIR / "graph" / "provenance_graph.json"
 GITHUB_REPO_ROOT = "https://github.com/broadinstitute/dig-aggregator-methods/blob/master"
+DAPPER_RELEASE = "https://github.com/broadinstitute/dapper/releases/tag/0.1.0"
+DAPPER_ID_PROFILE = "DAPPER-ID-1"
 
-LISTING_FILES = {
-    "variants_raw": S3_DIR / "dig-anal-variants_raw.txt",
-    "variants_processed": S3_DIR / "dig-anal-variants_processed.txt",
-    "variants": S3_DIR / "dig-anal-variants.txt",
-    "partitioned_variants": S3_DIR / "dig-anal-out-meta-variants.txt",
-    "bottom_line": S3_DIR / "dig-anal-out-meta-bottom-line.txt",
-    "min_p": S3_DIR / "dig-anal-out-meta-minp.txt",
-    "largest": S3_DIR / "dig-anal-out-meta-largest.txt",
-    "open_data": S3_DIR / "dig-open-bottom-line-analysis-stg.txt",
+LISTING_FILENAMES = {
+    "variants_raw": "dig-anal-variants_raw.txt",
+    "variants_processed": "dig-anal-variants_processed.txt",
+    "variants": "dig-anal-variants.txt",
+    "partitioned_variants": "dig-anal-out-meta-variants.txt",
+    "bottom_line": "dig-anal-out-meta-bottom-line.txt",
+    "min_p": "dig-anal-out-meta-minp.txt",
+    "largest": "dig-anal-out-meta-largest.txt",
+    "open_data": "dig-open-bottom-line-analysis-stg.txt",
 }
 
 REQUIRED_LISTINGS = {
@@ -53,6 +73,54 @@ REQUIRED_LISTINGS = {
 }
 
 DAPPER_NOTE = "notes/gptRecommendations/bottom-line-dapper.md"
+
+HASHABLE_FIELDS_BY_DAPPER_CLASS = {
+    "Activity": [
+        "label",
+        "location_path",
+        "stage_name",
+        "stage_group",
+        "method",
+        "dataset",
+        "phenotype",
+        "ancestry",
+    ],
+    "Dataset": [
+        "label",
+        "uri",
+        "location_path",
+        "directory_kind",
+        "family",
+        "method",
+        "dataset",
+        "phenotype",
+        "ancestry",
+        "rare",
+        "published_filename",
+    ],
+    "DrsObject": [
+        "label",
+        "uri",
+        "location_path",
+        "directory_kind",
+        "phenotype",
+        "ancestry",
+        "published_filename",
+    ],
+    "C2M2File": [
+        "label",
+        "uri",
+        "location_path",
+        "directory_kind",
+        "family",
+        "method",
+        "dataset",
+        "phenotype",
+        "ancestry",
+        "rare",
+        "published_filename",
+    ],
+}
 
 VARIANTS_RE = re.compile(
     r"^s3://dig-analysis-data/variants/"
@@ -147,8 +215,90 @@ class GraphBuilder:
         }
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Create a DAPPER-oriented provenance graph for intake and bottom-line pipeline outputs."
+    )
+    parser.add_argument(
+        "--out-graph-file",
+        default=str(OUTPUT_PATH),
+        help=f"Output graph JSON file. Default: {OUTPUT_PATH}",
+    )
+    parser.add_argument(
+        "--s3-listing-dir",
+        default=str(S3_DIR),
+        help=f"Directory containing S3 listing snapshot text files. Default: {S3_DIR}",
+    )
+    return parser.parse_args()
+
+
+def listing_files(s3_listing_dir: Path) -> Dict[str, Path]:
+    return {key: s3_listing_dir / filename for key, filename in LISTING_FILENAMES.items()}
+
+
 def safe_token(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.=-]+", "_", value)
+
+
+def sha512t24u(payload: bytes) -> str:
+    digest = hashlib.sha512(payload).digest()[:24]
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def canonical_json(data: dict) -> bytes:
+    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def compute_dapper_id(node: dict) -> Optional[str]:
+    dapper_class = node.get("dapper_class")
+    if not isinstance(dapper_class, str) or dapper_class not in HASHABLE_FIELDS_BY_DAPPER_CLASS:
+        return None
+
+    hashable_payload = {
+        key: node[key]
+        for key in HASHABLE_FIELDS_BY_DAPPER_CLASS[dapper_class]
+        if key in node and node[key] is not None
+    }
+    digest = sha512t24u(canonical_json({"class": dapper_class, "hashable": hashable_payload}))
+    return f"dapper:{dapper_class}.{digest}"
+
+
+def apply_dapper_identifiers(graph: dict) -> dict:
+    id_map: Dict[str, str] = {}
+
+    for node in graph["nodes"]:
+        computed_id = compute_dapper_id(node)
+        if computed_id is None:
+            continue
+
+        original_id = str(node["id"])
+        node["original_id"] = original_id
+        node["id"] = computed_id
+        node["dapper_release"] = DAPPER_RELEASE
+        node["dapper_id_profile"] = DAPPER_ID_PROFILE
+        id_map[original_id] = computed_id
+
+    for edge in graph["edges"]:
+        original_id = str(edge["id"])
+        edge["source"] = id_map.get(edge["source"], edge["source"])
+        edge["target"] = id_map.get(edge["target"], edge["target"])
+        edge["original_id"] = original_id
+        edge["id"] = f"edge:{edge.get('relationship', 'RelatedTo')}__{safe_token(edge['source'])}__{safe_token(edge['target'])}"
+        edge["dapper_release"] = DAPPER_RELEASE
+        edge["dapper_id_profile"] = DAPPER_ID_PROFILE
+
+    graph["dapper_release"] = DAPPER_RELEASE
+    graph["dapper_id_profile"] = DAPPER_ID_PROFILE
+    graph["identifier_strategy"] = (
+        "DAPPER-ID-1 computed node ids: dapper:{ClassName}.{sha512t24u digest over selected hashable fields}"
+    )
+    return {
+        "nodes": sorted(graph["nodes"], key=lambda item: str(item["id"])),
+        "edges": sorted(graph["edges"], key=lambda item: str(item["id"])),
+        "dapper_release": graph["dapper_release"],
+        "dapper_id_profile": graph["dapper_id_profile"],
+        "identifier_strategy": graph["identifier_strategy"],
+    }
 
 
 def read_lines(path: Path) -> List[str]:
@@ -398,33 +548,33 @@ def parse_open_data(lines: Iterable[str]) -> List[OpenDataOutput]:
     return outputs
 
 
-def build_graph() -> Tuple[dict, List[str]]:
+def build_graph(listings: Dict[str, Path]) -> Tuple[dict, List[str]]:
     missing_messages: List[str] = []
     for key, bucket in REQUIRED_LISTINGS.items():
-        if not LISTING_FILES[key].exists():
+        if not listings[key].exists():
             missing_messages.append(
                 f"Missing S3 directory listing snapshot for {bucket} "
-                f"(expected local file {LISTING_FILES[key].relative_to(REPO_ROOT)})"
+                f"(expected local file {listings[key]})"
             )
 
-    raw_inputs = parse_variant_inputs(read_lines(LISTING_FILES["variants_raw"]), VARIANTS_RAW_RE)
-    processed_inputs = parse_variant_inputs(read_lines(LISTING_FILES["variants_processed"]), VARIANTS_PROCESSED_RE)
-    variants_inputs = parse_variant_inputs(read_lines(LISTING_FILES["variants"]), VARIANTS_RE)
-    partitions = parse_partitions(read_lines(LISTING_FILES["partitioned_variants"]))
+    raw_inputs = parse_variant_inputs(read_lines(listings["variants_raw"]), VARIANTS_RAW_RE)
+    processed_inputs = parse_variant_inputs(read_lines(listings["variants_processed"]), VARIANTS_PROCESSED_RE)
+    variants_inputs = parse_variant_inputs(read_lines(listings["variants"]), VARIANTS_RE)
+    partitions = parse_partitions(read_lines(listings["partitioned_variants"]))
 
     bottom_ancestry, bottom_trans, bottom_ancestry_uri, bottom_trans_uri = parse_results(
-        read_lines(LISTING_FILES["bottom_line"]),
+        read_lines(listings["bottom_line"]),
         "bottom-line",
     )
     minp_ancestry, minp_trans, minp_ancestry_uri, minp_trans_uri = parse_results(
-        read_lines(LISTING_FILES["min_p"]),
+        read_lines(listings["min_p"]),
         "min_p",
     )
     largest_ancestry, largest_trans, largest_ancestry_uri, largest_trans_uri = parse_results(
-        read_lines(LISTING_FILES["largest"]),
+        read_lines(listings["largest"]),
         "largest",
     )
-    open_outputs = parse_open_data(read_lines(LISTING_FILES["open_data"]))
+    open_outputs = parse_open_data(read_lines(listings["open_data"]))
 
     raw_by_key = {(item.method, item.dataset, item.phenotype): item for item in raw_inputs}
     processed_by_key = {(item.method, item.dataset, item.phenotype): item for item in processed_inputs}
@@ -843,14 +993,18 @@ def build_graph() -> Tuple[dict, List[str]]:
             )
             add_edge(graph, endpoint, open_stage, edge_class="WasGeneratedBy", predicate="prov:wasGeneratedBy")
 
-    return graph.render(), missing_messages
+    return apply_dapper_identifiers(graph.render()), missing_messages
 
 
 def main() -> int:
-    graph, missing_messages = build_graph()
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote graph with {len(graph['nodes'])} nodes and {len(graph['edges'])} edges to {OUTPUT_PATH}")
+    args = parse_args()
+    output_path = Path(args.out_graph_file).expanduser().resolve()
+    s3_listing_dir = Path(args.s3_listing_dir).expanduser().resolve()
+
+    graph, missing_messages = build_graph(listing_files(s3_listing_dir))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote graph with {len(graph['nodes'])} nodes and {len(graph['edges'])} edges to {output_path}")
     if missing_messages:
         print("Missing S3 listing snapshots:")
         for message in missing_messages:

@@ -6,6 +6,27 @@
 
 - [data/graph/provenance_graph.json](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/data/graph/provenance_graph.json)
 
+Run from the repository root:
+
+```bash
+python3 src/python/create_bottom_line_graph.py
+```
+
+There are no mandatory command-line arguments.
+
+Optional arguments:
+
+- `--out-graph-file`: output graph JSON file. Default: `data/graph/provenance_graph.json`
+- `--s3-listing-dir`: directory containing S3 listing snapshot text files. Default: `data/s3`
+
+Example with explicit arguments:
+
+```bash
+python3 src/python/create_bottom_line_graph.py \
+  --s3-listing-dir data/s3 \
+  --out-graph-file data/graph/provenance_graph.json
+```
+
 The graph is intended to show how data moves:
 
 ```text
@@ -61,10 +82,13 @@ The generated JSON file contains:
 Each node includes:
 
 - `id`
+- `original_id`
 - `node_type`
 - `dapper_class`
 - `label`
 - `location_path`
+- `dapper_release`
+- `dapper_id_profile`
 
 Additional fields may include:
 
@@ -88,11 +112,14 @@ Additional fields may include:
 Each edge includes:
 
 - `id`
+- `original_id`
 - `source`
 - `target`
 - `relationship`
 - `dapper_edge_class`
 - `predicate`
+- `dapper_release`
+- `dapper_id_profile`
 
 Additional fields may include:
 
@@ -100,9 +127,19 @@ Additional fields may include:
 - `description`
 - `annotation_source`
 
+The graph object also includes:
+
+- `dapper_release`
+- `dapper_id_profile`
+- `identifier_strategy`
+
 ## Provenance Model
 
 The graph uses a simplified DAPPER-inspired model based on [bottom-line-dapper.md](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/notes/gptRecommendations/bottom-line-dapper.md:1).
+
+The generated identifiers reference DAPPER 0.1.0:
+
+- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0`
 
 ### Stage nodes
 
@@ -306,16 +343,33 @@ bottom-line result + min_p + optional largest
 
 ## Node Identity
 
-Node IDs are deterministic and encode node type plus contextual keys.
+Node IDs are deterministic DAPPER computed identifiers using the DAPPER-ID-1 pattern described in the DAPPER 0.1.0 schema:
+
+```text
+dapper:{ClassName}.{sha512t24u digest}
+```
+
+The graph builder initially creates natural ids such as `stage:*` and `node:*` while constructing the graph. Before writing the final JSON, it computes DAPPER-style ids for nodes whose `dapper_class` is one of:
+
+- `Activity`
+- `Dataset`
+- `DrsObject`
+- `C2M2File`
+
+The original natural id is preserved in `original_id`.
 
 Examples:
 
-- `stage:PartitionStage__bottom-line__ExChip__ExChip_AFGen__AF`
-- `node:variants__ExChip__ExChip_AFGen__AF`
-- `node:bottom_line_ancestry_specific__bottom-line__Acne__EU`
-- `node:open_data_endpoint__Acne__EU`
+- `dapper:Activity.--4RDXfU8l-vT1WCwk4t_BSf_zzGNHmq`
+- `dapper:C2M2File.--3bakj5L2yslfy4PpTRr5eaSq2qvOEa`
+- `dapper:Dataset.--1qixip_SCSd9IE-XmDebCO-bMQ6F2i`
+- `dapper:DrsObject.-0g_5QplcNOw3PML2X-1X2pPvlbpbksv`
 
-This lets the script merge repeated references to the same location or stage instance without duplication.
+The computed digest is generated over selected hashable fields for each DAPPER class. Fields such as `observed_from_listing`, `inferred_from_code`, and `annotation_source` are treated as generation metadata and are not included in the digest.
+
+After node ids are computed, all edge `source` and `target` references are rewritten to the computed ids. Edge ids are also regenerated from the remapped source and target, while the previous edge id is preserved in `original_id`.
+
+This keeps graph construction simple while making the exported graph use DAPPER-compatible stable identifiers.
 
 ## `location_path`
 
@@ -405,7 +459,16 @@ Run the script from the repository root:
 python3 src/python/create_bottom_line_graph.py
 ```
 
-It writes:
+Required arguments:
+
+- none
+
+Optional arguments:
+
+- `--out-graph-file`: output graph JSON file. Default: `data/graph/provenance_graph.json`
+- `--s3-listing-dir`: directory containing S3 listing snapshot text files. Default: `data/s3`
+
+It writes by default:
 
 - [provenance_graph.json](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/data/graph/provenance_graph.json)
 
