@@ -117,7 +117,7 @@
 
     #provenance-graph {
       width: 100%;
-      height: 520px;
+      height: 640px;
     }
 
     .graph-meta {
@@ -138,7 +138,7 @@
       }
 
       #provenance-graph {
-        height: 420px;
+        height: 520px;
       }
     }
   </style>
@@ -190,6 +190,88 @@
       container.appendChild(block);
     }
 
+    function labelForNode(nodeId, nodeIndex) {
+      const node = nodeIndex.get(nodeId) || {};
+      return node.label || node.name || node.stage_name || nodeId;
+    }
+
+    function buildTopDownGraph(edges, nodeIds) {
+      const adjacency = new Map();
+      const incomingCount = new Map();
+
+      for (const nodeId of nodeIds) {
+        adjacency.set(nodeId, []);
+        incomingCount.set(nodeId, 0);
+      }
+
+      for (const edge of edges) {
+        if (!edge.source || !edge.target) {
+          continue;
+        }
+
+        // Stored provenance points from products to provenance dependencies.
+        // Display it as input -> activity -> output so the graph reads top-down.
+        const visualSource = edge.target;
+        const visualTarget = edge.source;
+        adjacency.get(visualSource)?.push(visualTarget);
+        incomingCount.set(visualTarget, (incomingCount.get(visualTarget) || 0) + 1);
+      }
+
+      const roots = [...nodeIds].filter((nodeId) => (incomingCount.get(nodeId) || 0) === 0).sort();
+      const depth = new Map();
+      const queue = roots.map((nodeId) => {
+        depth.set(nodeId, 0);
+        return nodeId;
+      });
+
+      while (queue.length > 0) {
+        const nodeId = queue.shift();
+        const nextDepth = (depth.get(nodeId) || 0) + 1;
+
+        for (const nextNode of adjacency.get(nodeId) || []) {
+          if (!depth.has(nextNode) || nextDepth > depth.get(nextNode)) {
+            depth.set(nextNode, nextDepth);
+            queue.push(nextNode);
+          }
+        }
+      }
+
+      for (const nodeId of nodeIds) {
+        if (!depth.has(nodeId)) {
+          depth.set(nodeId, 0);
+        }
+      }
+
+      const layers = new Map();
+      for (const nodeId of nodeIds) {
+        const layer = depth.get(nodeId) || 0;
+        if (!layers.has(layer)) {
+          layers.set(layer, []);
+        }
+        layers.get(layer).push(nodeId);
+      }
+
+      const maxLayer = Math.max(...layers.keys(), 0);
+      const width = Math.max(900, Math.max(...[...layers.values()].map((layer) => layer.length), 1) * 180);
+      const height = Math.max(560, (maxLayer + 1) * 120);
+      const positions = new Map();
+
+      for (const [layer, layerNodes] of layers.entries()) {
+        layerNodes.sort();
+        const y = 70 + layer * ((height - 140) / Math.max(maxLayer, 1));
+        const spacing = width / (layerNodes.length + 1);
+
+        layerNodes.forEach((nodeId, index) => {
+          positions.set(nodeId, {
+            x: spacing * (index + 1),
+            y,
+          });
+        });
+      }
+
+      return {positions, width, height, roots};
+    }
+
     function buildGraphElements(provenance) {
       const shell = document.createElement("section");
       shell.className = "field-block";
@@ -237,15 +319,20 @@
         }
       }
 
+      const layoutGraph = buildTopDownGraph(edges, nodeIds);
+      graphContainer.style.height = `${Math.min(Math.max(layoutGraph.height, 520), 1200)}px`;
+
       for (const nodeId of nodeIds) {
         const node = nodeIndex.get(nodeId) || {};
         elements.push({
           data: {
             id: nodeId,
-            label: node.label || node.name || node.stage_name || nodeId,
+            label: labelForNode(nodeId, nodeIndex),
             dapperClass: node.dapper_class || "Unknown",
             directoryKind: node.directory_kind || "",
+            graphRole: layoutGraph.roots.includes(nodeId) ? "input" : "",
           },
+          position: layoutGraph.positions.get(nodeId),
         });
       }
 
@@ -257,9 +344,10 @@
         elements.push({
           data: {
             id: edge.id || `${edge.source}-${edge.target}-${edge.relationship || "edge"}`,
-            source: edge.source,
-            target: edge.target,
-            label: edge.relationship || "related_to",
+            source: edge.target,
+            target: edge.source,
+            provenanceSource: edge.source,
+            provenanceTarget: edge.target,
           },
         });
       }
@@ -277,13 +365,13 @@
                 "border-color": "#094842",
                 "color": "#111",
                 "label": "data(label)",
-                "font-size": 10,
+                "font-size": 9,
                 "text-wrap": "wrap",
-                "text-max-width": 120,
+                "text-max-width": 132,
                 "text-valign": "bottom",
                 "text-margin-y": 10,
-                "width": 22,
-                "height": 22,
+                "width": 20,
+                "height": 20,
               },
             },
             {
@@ -334,24 +422,18 @@
                 "line-color": "#8b8a83",
                 "target-arrow-color": "#8b8a83",
                 "target-arrow-shape": "triangle",
-                "curve-style": "bezier",
-                "label": "data(label)",
-                "font-size": 9,
-                "text-background-color": "#fffdf7",
-                "text-background-opacity": 1,
-                "text-background-padding": 2,
-                "text-rotation": "autorotate",
+                "curve-style": "taxi",
+                "taxi-direction": "downward",
+                "taxi-turn": 24,
               },
             },
           ],
           layout: {
-            name: "cose",
-            animate: false,
+            name: "preset",
             fit: true,
-            padding: 24,
-            nodeRepulsion: 180000,
-            idealEdgeLength: 120,
+            padding: 48,
           },
+          wheelSensitivity: 0.25,
         });
       }, 0);
 
