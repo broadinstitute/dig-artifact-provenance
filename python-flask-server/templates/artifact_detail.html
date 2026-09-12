@@ -127,6 +127,67 @@
       font-size: 0.92rem;
     }
 
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5dcc8;
+      background: rgba(255, 253, 247, 0.72);
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-shape {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: #0e6b63;
+      border: 2px solid #094842;
+      box-sizing: border-box;
+    }
+
+    .legend-activity {
+      width: 18px;
+      border-radius: 4px;
+      background: #d17b0f;
+      border-color: #9c5704;
+    }
+
+    .legend-dataset {
+      border-radius: 50%;
+      background: #59603a;
+      border-color: #3c4126;
+    }
+
+    .legend-drs {
+      transform: rotate(45deg);
+      background: #225f9d;
+      border-color: #153f68;
+    }
+
+    .legend-c2m2 {
+      clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+      background: #7b4c88;
+      border-color: #573160;
+    }
+
+    .legend-open {
+      width: 16px;
+      height: 16px;
+      border: 4px solid #111;
+      background: #225f9d;
+      transform: rotate(45deg);
+    }
+
     .graph-empty {
       padding: 14px 16px;
       color: var(--muted);
@@ -292,6 +353,17 @@
       meta.className = "graph-meta";
       meta.textContent = `${rawNodes.length || 0} nodes, ${edges.length} edges`;
       graphShell.appendChild(meta);
+
+      const legend = document.createElement("div");
+      legend.className = "graph-legend";
+      legend.innerHTML = `
+        <span class="legend-item"><span class="legend-shape legend-c2m2"></span>File input/intermediate</span>
+        <span class="legend-item"><span class="legend-shape legend-activity"></span>Process activity</span>
+        <span class="legend-item"><span class="legend-shape legend-dataset"></span>Dataset result</span>
+        <span class="legend-item"><span class="legend-shape legend-drs"></span>DRS object</span>
+        <span class="legend-item"><span class="legend-shape legend-open"></span>Published endpoint</span>
+      `;
+      graphShell.appendChild(legend);
 
       if (edges.length === 0) {
         const empty = document.createElement("div");
