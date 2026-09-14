@@ -143,7 +143,7 @@ The generated identifiers reference DAPPER 0.1.0:
 
 The graph uses the same DAPPER 0.1.0 schema release as `annotation_source`:
 
-- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+- `https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml`
 
 ### Stage nodes
 

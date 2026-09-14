@@ -165,7 +165,7 @@ Each generated provenance document includes:
 
 `annotation_source` is set to the DAPPER 0.1.0 schema reference:
 
-- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+- `https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml`
 
 The generated document also keeps `recommendation_reference` for the local bottom-line modeling guidance.
 

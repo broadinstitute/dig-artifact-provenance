@@ -99,7 +99,7 @@ The export uses the graph node field `dapper_class` to place graph nodes into DA
 
 Generated provenance documents and exported section records use the DAPPER 0.1.0 schema reference as `annotation_source`:
 
-- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
+- `https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml`
 
 The local recommendation note remains in `recommendation_reference` to document project-specific modeling choices.
 
