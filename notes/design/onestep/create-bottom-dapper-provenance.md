@@ -12,6 +12,8 @@ It combines the behavior of:
 
 The script builds the computed-id bottom-line graph in memory, creates one DAPPER-oriented provenance document per published open-data endpoint, and loads those documents into the SQLite `prov_artifact` table.
 
+Each generated document includes a schema-shaped `dapper` section based on the DAPPER 0.1.0 `dapper.yaml` classes and slots. The existing application-oriented sections remain in the document for the Flask UI and graph viewer.
+
 Writing the individual provenance JSON files is optional.
 
 ## How To Run
@@ -155,9 +157,10 @@ Each generated provenance document includes:
 - `dapper_release`
 - `dapper_id_profile`
 - `annotation_source`
+- `dapper`
 - `root_node_id`
 - `root_location_path`
-- DAPPER-style arrays for datasets, DRS objects, activities, C2M2 files, and edges
+- application-oriented arrays for datasets, DRS objects, activities, C2M2 files, and edges
 - the raw root-specific provenance subgraph under `graph`
 
 `annotation_source` is set to the DAPPER 0.1.0 schema reference:
@@ -165,6 +168,29 @@ Each generated provenance document includes:
 - `https://github.com/broadinstitute/dapper/releases/tag/0.1.0#dapper.yaml`
 
 The generated document also keeps `recommendation_reference` for the local bottom-line modeling guidance.
+
+## DAPPER Schema Shape
+
+The `dapper` section is the schema-shaped portion of each generated document.
+
+It contains:
+
+- `schema_name`: `dapper.yaml`
+- `schema_release`: the DAPPER 0.1.0 release URL
+- `schema_source`: the DAPPER 0.1.0 schema reference
+- `id_profile`: `DAPPER-ID-1`
+- `nodes`: records with a `class` value such as `Dataset`, `DrsObject`, `Activity`, or `C2M2File`
+- `edges`: records with `class`, `id`, `subject`, `predicate`, and `object`
+
+The schema-shaped records use DAPPER slot names such as:
+
+- `Dataset`: `id`, `name`, `resource_type`, `description`, `access_level`, `was_generated_by`
+- `DrsObject`: `id`, `name`, `drs_id`, `self_uri`, `mime_type`, `access_methods`
+- `Activity`: `id`, `name`, `description`, `activity_type`, `repo_url`
+- `C2M2File`: `id`, `name`, `description`, `filename`, `local_id`
+- `Edge`: `id`, `subject`, `predicate`, `object`, and optional `edge_role`
+
+The application-oriented arrays outside `dapper` intentionally retain extra operational fields such as `phenotype`, `ancestry`, `location_path`, and `graph`. Those fields are useful for this app but are not all DAPPER schema slots.
 
 ## Relationship To Existing Scripts
 
@@ -191,7 +217,7 @@ The script intentionally delegates graph construction and DAPPER section mapping
 Known limitations:
 
 - it does not create or migrate the SQLite schema
-- it does not validate the generated JSON against a formal DAPPER schema implementation
+- it does not run a formal LinkML/DAPPER validator
 - it does not compute file checksums, sizes, or object version metadata
 - it only exports provenance for open-data endpoints under `s3://dig-open-bottom-line-analysis-stg/`
 - it overwrites matching output filenames if `--save-provenance-files` is used against an existing output directory

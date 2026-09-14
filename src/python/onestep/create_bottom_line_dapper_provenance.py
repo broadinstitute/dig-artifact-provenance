@@ -39,6 +39,10 @@ This combines:
 The generated graph uses DAPPER 0.1.0 computed identifiers from:
 
 - https://github.com/broadinstitute/dapper/releases/tag/0.1.0
+
+Each generated document includes a ``dapper`` section whose nodes and edges use
+slot names from the DAPPER 0.1.0 ``dapper.yaml`` schema. The legacy
+application-oriented sections are retained for the existing web UI and loader.
 """
 
 from __future__ import annotations
@@ -90,6 +94,95 @@ DEFAULT_GRAPH_OUTPUT = REPO_ROOT / "data" / "graph" / "provenance_graph.json"
 DEFAULT_DATABASE = REPO_ROOT / "data" / "database" / "provenance_db.sqlite"
 DEFAULT_LOG_FILE = REPO_ROOT / "logs" / "bottom-line-provenance.log"
 DEFAULT_GRAPH_REFERENCE = "<in-memory bottom-line DAPPER graph>"
+DAPPER_SCHEMA_NAME = "dapper.yaml"
+
+
+def compact_dict(data: dict) -> dict:
+    return {key: value for key, value in data.items() if value is not None and value != []}
+
+
+def dapper_dataset_entry(record: dict) -> dict:
+    return compact_dict(
+        {
+            "class": "Dataset",
+            "id": record.get("id"),
+            "name": record.get("name"),
+            "resource_type": record.get("resource_type"),
+            "description": record.get("description"),
+            "access_level": record.get("access_level"),
+            "was_generated_by": record.get("was_generated_by"),
+        }
+    )
+
+
+def dapper_drs_object_entry(record: dict) -> dict:
+    return compact_dict(
+        {
+            "class": "DrsObject",
+            "id": record.get("id"),
+            "name": record.get("published_filename") or record.get("description"),
+            "drs_id": record.get("drs_id"),
+            "self_uri": record.get("self_uri"),
+            "mime_type": record.get("mime_type"),
+            "access_methods": record.get("access_methods"),
+        }
+    )
+
+
+def dapper_activity_entry(record: dict) -> dict:
+    return compact_dict(
+        {
+            "class": "Activity",
+            "id": record.get("id"),
+            "name": record.get("name"),
+            "description": record.get("description"),
+            "activity_type": record.get("activity_type"),
+            "repo_url": record.get("repo_url"),
+        }
+    )
+
+
+def dapper_c2m2_file_entry(record: dict) -> dict:
+    return compact_dict(
+        {
+            "class": "C2M2File",
+            "id": record.get("id"),
+            "name": record.get("name"),
+            "description": record.get("description"),
+            "filename": record.get("filename"),
+            "local_id": record.get("local_id"),
+        }
+    )
+
+
+def dapper_edge_entry(record: dict) -> dict:
+    return compact_dict(
+        {
+            "class": record.get("relationship"),
+            "id": record.get("id"),
+            "subject": record.get("source"),
+            "predicate": record.get("predicate"),
+            "object": record.get("target"),
+            "edge_role": record.get("edge_role"),
+        }
+    )
+
+
+def build_dapper_bundle(document: dict) -> dict:
+    nodes = []
+    nodes.extend(dapper_dataset_entry(record) for record in document["datasets"])
+    nodes.extend(dapper_drs_object_entry(record) for record in document["drs_objects"])
+    nodes.extend(dapper_activity_entry(record) for record in document["activities"])
+    nodes.extend(dapper_c2m2_file_entry(record) for record in document["c2m2_files"])
+
+    return {
+        "schema_name": DAPPER_SCHEMA_NAME,
+        "schema_release": document["dapper_release"],
+        "schema_source": DAPPER_SCHEMA_ANNOTATION_SOURCE,
+        "id_profile": document["dapper_id_profile"],
+        "nodes": nodes,
+        "edges": [dapper_edge_entry(record) for record in document["edges"]],
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -187,6 +280,7 @@ def build_documents_from_graph(graph: dict, graph_reference: str) -> list[tuple[
                 "edges": subgraph_edges,
             },
         }
+        document["dapper"] = build_dapper_bundle(document)
 
         filename = filename_from_location_path(str(root_node.get("location_path", root_node["id"])))
         documents.append((filename, document))

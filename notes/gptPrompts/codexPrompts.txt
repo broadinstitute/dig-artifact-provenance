@@ -13,6 +13,17 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
+20260914 - make sure prov is v0.1.0
+the dapper.yaml schema file for version is at https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml
+make sure all the provenance created is as described in the 0.1.0 version at 
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+make sure all the provenance created is as described in the 0.1.0 version at 
+https://github.com/broadinstitute/dapper/releases/tag/0.1.0 dapper.yaml schema file
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+
 20260910 - make creating prov and loading to db one step
 when creating the provenance file, use the https://github.com/broadinstitute/dapper/releases/tag/0.1.0 dapper.yaml schema file 
 as the annotation_source
