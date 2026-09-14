@@ -5,6 +5,26 @@ TBD
 - add port startup log 
 
 
+
+
+20260910 - pretty up web page
+in the provenance detail graph widget, different node shapes are used 
+for inputs/outputs and processes
+add a legend for the different node shapes used 
+
+reverse the latest change and simply remove the edge predicate from the graph view
+
+the new graph display works except some of the node name and the edge predicate 
+overlap, making it hard to read
+
+update the provenance detail web page
+make the graph didsplay settings resemble the ones at 
+https://translator.broadinstitute.org/genetics_provider/geneset_collections/gene-sets/27
+where the output nodes flow down from the input nodes at the top
+let me know if there are any concerns or issues
+
+
+
 20260902 - drs 
 add a GET endpoint /drs/v1/objects/  to the app.py 
 that returns the current time as a json object
