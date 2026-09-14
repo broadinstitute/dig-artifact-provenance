@@ -49,7 +49,7 @@ OUTPUT_PATH = DATA_DIR / "graph" / "provenance_graph.json"
 GITHUB_REPO_ROOT = "https://github.com/broadinstitute/dig-aggregator-methods/blob/master"
 DAPPER_RELEASE = "https://github.com/broadinstitute/dapper/releases/tag/0.1.0"
 DAPPER_ID_PROFILE = "DAPPER-ID-1"
-DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml"
+DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml"
 
 LISTING_FILENAMES = {
     "variants_raw": "dig-anal-variants_raw.txt",

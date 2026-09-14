@@ -4,7 +4,7 @@
 Generated provenance documents use the DAPPER 0.1.0 schema reference as
 ``annotation_source``:
 
-    https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml
+    https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT = REPO_ROOT / "data" / "graph" / "provenance_graph.json"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "bottom-line-provenance"
 RECOMMENDATION_REF = "notes/gptRecommendations/bottom-line-dapper.md"
-DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml"
+DAPPER_SCHEMA_ANNOTATION_SOURCE = "https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml"
 
 BACKWARD_RELATIONSHIPS = {"WasGeneratedBy", "WasDerivedFrom", "Used"}
 
