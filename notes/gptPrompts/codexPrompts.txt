@@ -14,6 +14,11 @@ TBD - always update .md file
 
 
 20260914 - make sure prov is v0.1.0
+the raw dapper.yaml schema file for version 0.1.0 is at https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml
+make sure all the provenance created is as described in the 0.1.0 version 
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+if you can't acceess the schema file, do nothing
+
 the dapper.yaml schema file for version is at https://github.com/broadinstitute/dapper/blob/0.1.0/schema/dapper.yaml
 make sure all the provenance created is as described in the 0.1.0 version at 
 let me know if this is a correct use of the schema file and if there are any concerns or issues
