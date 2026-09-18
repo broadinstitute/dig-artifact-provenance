@@ -1,61 +1,68 @@
 id: https://cfdeknowledge.org/nih-mcp-gateway/dapper
 name: dapper
-title: DAPPER - NIH Dataset Attribution and Provenance Profile (working title)
+title: DAPPER - NIH Dataset Attribution and Provenance Profile
 description: >-
-  A LinkML data model for the NIH Dataset Attribution and Provenance Profile
-  (NIH-DAPP). Every dataset returned through an NIH MCP server should carry
+  A LinkML data model for DAPPER, the NIH Dataset Attribution and Provenance
+  Profile. Every dataset returned through an NIH MCP server should carry
   enough structured metadata for an AI system to cite the dataset, identify its
   creators, link to the primary publication, report the NIH grant/award that
-  supported it, and describe the provenance of the returned result. The "2.0"
-  profile is the 1.0 citation/funding/provenance core (JSON-LD + DataCite +
+  supported it, and describe the provenance of the returned result. The
+  profile's core covers citation/funding/provenance (JSON-LD + DataCite +
   PROV-O + schema.org) plus GA4GH DRS object identity, DUO data-use terms,
   RO-Crate packaging, and BioCompute/IEEE-2791 executable workflow provenance.
 
-  This "3.0" profile is a SUPERSET of 2.0 — every 2.0 class, slot, and enum is
-  carried forward unchanged — and adds three blocks, each annotated
-  `nih:profile_level: "3.0"`:
+  On top of that core, the profile adds six further blocks:
 
-    (A) DISMECH HARMONIZATION. Cross-walk mappings onto the Monarch Initiative
-        DISMECH disease-pathophysiology schema
-        (https://w3id.org/monarch-initiative/dismech), so the two models stay
-        harmonized without either one forking the other. DISMECH is mirrored
-        verbatim from upstream and is NOT edited; all harmonization lives here
-        as `exact_mappings` / `close_mappings` plus a `DismechLinked` mixin
-        carrying pointers. Reuse, don't reinvent.
+    DISMECH HARMONIZATION. Cross-walk mappings onto the Monarch Initiative
+      DISMECH disease-pathophysiology schema
+      (https://w3id.org/monarch-initiative/dismech), so the two models stay
+      harmonized without either one forking the other. DISMECH is mirrored
+      verbatim from upstream and is NOT edited; all harmonization lives here
+      as `exact_mappings` / `close_mappings` plus a `DismechLinked` mixin
+      carrying pointers. Reuse, don't reinvent.
 
-    (B) NANOPUBLICATION. The nanopublication model as used by the Nanodash /
-        Knowledge Pixels stack: the Head/assertion/provenance/pubinfo quad and
-        the npx signature + lifecycle (supersedes / retracts / introduces)
-        terms. Lets a NIH-DAPP object be emitted as, or minted from, a signed
-        nanopublication.
+    NANOPUBLICATION. The nanopublication model as used by the Nanodash /
+      Knowledge Pixels stack: the Head/assertion/provenance/pubinfo quad and
+      the npx signature + lifecycle (supersedes / retracts / introduces)
+      terms. Lets a DAPPER object be emitted as, or minted from, a signed
+      nanopublication.
 
-    (D) AGENTIC REPLAY (3.1). `AgenticWorkspace` — the workspace and prompt an
-        AI agent can use to re-run an `Activity`. The executable provenance a
-        1.0 Activity carries (`command`, `container_image`, `code_version`) is
-        the machine replay path; this is the agentic one, alongside it rather
-        than instead of it. A prompt is NOT a deterministic replay mechanism,
-        so the two are deliberately not interchangeable.
+    AGENTIC REPLAY. `AgenticWorkspace` — the workspace and prompt an
+      AI agent can use to re-run an `Activity`. The executable provenance an
+      Activity carries (`command`, `container_image`, `code_version`) is
+      the machine replay path; this is the agentic one, alongside it rather
+      than instead of it. A prompt is NOT a deterministic replay mechanism,
+      so the two are deliberately not interchangeable.
 
-    (C) HYPOTHESIS. A FAIR-digital-object hypothesis — the REVEAL output — as
-        a gene -> mechanism -> disease causal chain. Structurally compatible
-        with dismech.monarchinitiative.org (it reuses DISMECH's hypothesis
-        grouping, causal-edge, and evidence shapes and its CausalLinkTypeEnum
-        values verbatim) and carries full attribution/provenance by mixing in
-        `ProvenancedResource`, so a hypothesis is citable exactly like a
-        dataset.
+    HYPOTHESIS. A FAIR-digital-object hypothesis — the REVEAL output — as
+      a gene -> mechanism -> disease causal chain. Structurally compatible
+      with dismech.monarchinitiative.org (it reuses DISMECH's hypothesis
+      grouping, causal-edge, and evidence shapes and its CausalLinkTypeEnum
+      values verbatim) and carries full attribution/provenance by mixing in
+      `ProvenancedResource`, so a hypothesis is citable exactly like a
+      dataset.
+
+    SINGLE-CELL. `GeneProgram` — a coordinated pattern of gene activity
+      representing a biological process, e.g. a factor from cNMF/NMF/
+      Spectra/WGCNA or a curated gene module — extends `Set` the same way
+      `GeneSet` does, with genes as members. `CellState` is the cellular
+      phenotype defined by the combination of `GeneProgram`s active in a
+      cell (or cell population) at once, as distinct from a cell TYPE (a
+      Cell Ontology class), which is what lineage a cell belongs to rather
+      than what functional state it is in.
 
   The schema is shaped as a Dock knowledge graph: NIH resources, agents,
   awards, publications, hypotheses, and nanopublications are Node entities;
   attribution, provenance, and causal assertions are Edge relationships.
 license: https://creativecommons.org/licenses/by/4.0/
-version: 3.2.0
+version: 0.1.0
 
 # ---------------------------------------------------------------------------
-# MIRRORING INVARIANT (George Papanicolaou, NIH/OD — the profile's hard rule)
+# MIRRORING INVARIANT (NIH/OD — the profile's hard rule)
 #
 #   Mirrors (OpenAI, Anthropic, Google, Microsoft, AWS, ... regional caches)
 #   MAY cache NIH resources and MAY APPEND a `mirror_provenance` object, but
-#   they MUST NOT modify any element annotated `nih:mirror_mutable: false`
+#   they MUST NOT modify any element annotated `dapper:mirror_mutable: false`
 #   (the authoritative NIH provenance: creators, funding, publications,
 #   recommended_citation). Rewriting authoritative provenance causes drift and
 #   makes the attribution worthless. Full enforcement is a downstream validator
@@ -66,11 +73,11 @@ version: 3.2.0
 comments:
   - >-
     Authoritative NIH provenance (creators, funding, publications,
-    recommended_citation) is annotated `nih:mirror_mutable: false` and MUST NOT
+    recommended_citation) is annotated `dapper:mirror_mutable: false` and MUST NOT
     be rewritten by mirrors. Mirrors may only append `mirror_provenance`
-    (MirrorProvenance / HasMirrorProvenance, annotated `nih:append_only: true`).
+    (MirrorProvenance / HasMirrorProvenance, annotated `dapper:append_only: true`).
 
-default_prefix: nih
+default_prefix: dapper
 default_range: string
 
 # PREFIX POLICY
@@ -80,10 +87,10 @@ default_range: string
 #   with NO RDF vocabulary — inventing `drs:DrsObject`-style IRIs for them
 #   would produce mappings that never dereference. Those standards are instead
 #   recorded as human-facing `aliases` (the source element name) and a
-#   `nih:source_standard` annotation. All obo/DUO/IAO CURIEs were verified
+#   `dapper:source_standard` annotation. All obo/DUO/IAO CURIEs were verified
 #   against EBI OLS4; FRAPO/FaBiO/SPDX/SPAR-DataCite against their published
 #   specs.
-#   3.0 additions: the nanopublication prefixes below were each dereferenced
+#   Additions: the nanopublication prefixes below were each dereferenced
 #   and read before use (`np` and `npx` and `hycl` all serve Turtle at their
 #   namespace IRI); the terms mapped in block (B) are quoted from those live
 #   ontology documents, not recalled. `ntemplate` is the Nanodash template
@@ -91,11 +98,20 @@ default_range: string
 #   the upstream DISMECH schema's own declared prefix, copied verbatim from
 #   its `prefixes:` block so cross-walk CURIEs resolve.
 prefixes:
-  nih: https://nih.gov/ns/mcp#
+  # This schema's own namespace (default_prefix) for classes/slots/enums with
+  # no external `meaning:`, plus the bookkeeping annotations below
+  # (mirror_mutable, source_standard, ...). Served from this repo's existing
+  # GitHub Pages deploy (see .github/workflows/pages.yml), not a placeholder
+  # domain nobody here controls. Shared with the `dapper:{ClassName}.{digest}`
+  # minted-identifier scheme (schema/identity/dapper_identity.py) — the two
+  # never collide today, but a self-defined term's local name must never
+  # contain a literal `.`, or digest_of() will mistake it for an id and
+  # truncate it.
+  dapper: https://broadinstitute.github.io/dapper/ns#
   linkml: https://w3id.org/linkml/
   schema: http://schema.org/
   prov: http://www.w3.org/ns/prov#
-  # --- 3.0: nanopublication (verified by dereferencing each namespace) ---
+  # --- nanopublication (verified by dereferencing each namespace) ---
   # Nanopublication schema. Defines Nanopublication/Assertion/Provenance/
   # PublicationInfo and the three functional hasX properties.
   np: http://www.nanopub.org/nschema#
@@ -107,26 +123,26 @@ prefixes:
   hycl: http://purl.org/petapico/o/hycl#
   # Nanodash / Knowledge Pixels template vocabulary.
   ntemplate: https://w3id.org/np/o/ntemplate/
-  # --- 3.0: DISMECH cross-walk ---
+  # --- DISMECH cross-walk ---
   dismech: https://w3id.org/monarch-initiative/dismech/
   # SKOS — used for instance-level cross-walk predicates (closeMatch). Also
   # DISMECH's own declared prefix for the same namespace.
   skos: http://www.w3.org/2004/02/skos/core#
   MONDO: http://purl.obolibrary.org/obo/MONDO_
-  HGNC: https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/
-  PMID: http://www.ncbi.nlm.nih.gov/pubmed/
+  HGNC: http://identifiers.org/hgnc/
+  PMID: http://identifiers.org/pubmed/
   # SPAR DataCite Ontology (identifier-focused). NOT the kernel-4 XSD —
   # kernel-4 defines XML elements, not RDF properties.
-  datacite: http://purl.org/spar/datacite/
+  DataCite: http://purl.org/spar/datacite/
   # FRAPO — Funding, Research Administration and Projects Ontology.
-  frapo: http://purl.org/cerif/frapo/
+  FRAPO: http://purl.org/cerif/frapo/
   dcterms: http://purl.org/dc/terms/
-  dctype: http://purl.org/dc/dcmitype/
+  dctypes: http://purl.org/dc/dcmitype/
   dcat: http://www.w3.org/ns/dcat#
   foaf: http://xmlns.com/foaf/0.1/
   fabio: http://purl.org/spar/fabio/
   spdx: http://spdx.org/rdf/terms#
-  duo: http://purl.obolibrary.org/obo/DUO_
+  DUO: http://purl.obolibrary.org/obo/DUO_
   obo: http://purl.obolibrary.org/obo/
   orcid: https://orcid.org/
   ror: https://ror.org/
@@ -145,36 +161,36 @@ enums:
   ResourceTypeEnum:
     description: DataCite-style resource type (resourceTypeGeneral) for the returned entity.
     permissible_values:
-      Dataset:
+      dataset:
         meaning: schema:Dataset
-      Collection:
-        meaning: dctype:Collection
-      Set:
+      collection:
+        meaning: dctypes:Collection
+      set:
         meaning: prov:Collection
         description: A collection of members (e.g. a gene set); see the Set class.
-      GeneSet:
+      gene_set:
         description: >-
           A set whose members are genes (dig.geneset). No ontology term is
           asserted (none resolves); grounded via the Set class (prov:Collection).
-      Software:
+      software:
         meaning: schema:SoftwareApplication
-      Workflow:
-      Model:
-      Service:
+      workflow:
+      model:
+      service:
         meaning: schema:Service
 
   CreatorRoleEnum:
     description: The role a creator (Person/Organization) played for the dataset.
     permissible_values:
-      PrincipalInvestigator:
-      Researcher:
-      DataManager:
-      ProjectLeader:
-      Curator:
-      Consortium:
-      Organization:
-      Division:
-      Group:
+      principal_investigator:
+      researcher:
+      data_manager:
+      project_leader:
+      curator:
+      consortium:
+      organization:
+      division:
+      group:
 
   ContributorRoleEnum:
     description: >-
@@ -183,21 +199,21 @@ enums:
       an XML Schema, so these are XSD enumeration values with no RDF term to
       point at.
     annotations:
-      nih:source_standard: DataCite kernel-4 contributorType
+      dapper:source_standard: DataCite kernel-4 contributorType
     permissible_values:
-      DataCurator:
+      data_curator:
         description: DataCite contributorType "DataCurator".
-      HostingInstitution:
+      hosting_institution:
         description: DataCite contributorType "HostingInstitution".
-      DataManager:
+      data_manager:
         description: DataCite contributorType "DataManager".
-      Producer:
+      producer:
         description: DataCite contributorType "Producer".
-      RightsHolder:
+      rights_holder:
         description: DataCite contributorType "RightsHolder".
-      Sponsor:
+      sponsor:
         description: DataCite contributorType "Sponsor".
-      Other:
+      other:
         description: DataCite contributorType "Other".
 
   PublicationRelationshipEnum:
@@ -206,17 +222,17 @@ enums:
       kernel-4 `relationType` enumeration (an XSD enumeration, hence no
       `meaning:` CURIEs).
     annotations:
-      nih:source_standard: DataCite kernel-4 relationType
+      dapper:source_standard: DataCite kernel-4 relationType
     permissible_values:
-      IsDescribedBy:
+      is_described_by:
         description: DataCite relationType "IsDescribedBy".
-      IsSupplementTo:
+      is_supplement_to:
         description: DataCite relationType "IsSupplementTo".
-      IsCitedBy:
+      is_cited_by:
         description: DataCite relationType "IsCitedBy".
-      Cites:
+      cites:
         description: DataCite relationType "Cites".
-      IsReferencedBy:
+      is_referenced_by:
         description: DataCite relationType "IsReferencedBy".
 
   AccessLevelEnum:
@@ -229,22 +245,22 @@ enums:
   FunderIdentifierTypeEnum:
     description: Type of the funder identifier.
     permissible_values:
-      Crossref_Funder_ID:
+      crossref_funder_id:
         description: Crossref Funder Registry ID.
-      ROR:
+      ror:
         description: Research Organization Registry ID.
-      GRID:
-      ISNI:
-      Other:
+      grid:
+      isni:
+      other:
 
   IdentifierTypeEnum:
     description: Type of a dataset persistent identifier.
     permissible_values:
-      DOI:
-      Handle:
-      ARK:
-      Accession:
-      URL:
+      doi:
+      handle:
+      ark:
+      accession:
+      url:
 
   DataUsePermissionEnum:
     description: >-
@@ -253,15 +269,15 @@ enums:
       `meaning` CURIEs were verified against EBI OLS4.
     permissible_values:
       no_restriction:
-        meaning: duo:0000004
+        meaning: DUO:0000004
         description: DUO:0000004 — no restriction (NRES).
       general_research_use:
-        meaning: duo:0000042
+        meaning: DUO:0000042
         description: >-
           DUO:0000042 — general research use (GRU); includes health/biomedical,
           fundamental biology, ancestry, methods, and social-sciences research.
       population_origins_ancestry_research_only:
-        meaning: duo:0000011
+        meaning: DUO:0000011
         description: DUO:0000011 — population origins or ancestry research only (POA).
 
   DataUseModifierEnum:
@@ -271,37 +287,37 @@ enums:
       verified against EBI OLS4.
     permissible_values:
       research_specific_restrictions:
-        meaning: duo:0000012
+        meaning: DUO:0000012
       no_general_methods_research:
-        meaning: duo:0000015
+        meaning: DUO:0000015
       genetic_studies_only:
-        meaning: duo:0000016
+        meaning: DUO:0000016
       not_for_profit_non_commercial_use_only:
-        meaning: duo:0000018
+        meaning: DUO:0000018
       publication_required:
-        meaning: duo:0000019
+        meaning: DUO:0000019
       collaboration_required:
-        meaning: duo:0000020
+        meaning: DUO:0000020
       ethics_approval_required:
-        meaning: duo:0000021
+        meaning: DUO:0000021
       geographical_restriction:
-        meaning: duo:0000022
+        meaning: DUO:0000022
       publication_moratorium:
-        meaning: duo:0000024
+        meaning: DUO:0000024
       time_limit_on_use:
-        meaning: duo:0000025
+        meaning: DUO:0000025
       user_specific_restriction:
-        meaning: duo:0000026
+        meaning: DUO:0000026
       project_specific_restriction:
-        meaning: duo:0000027
+        meaning: DUO:0000027
       institution_specific_restriction:
-        meaning: duo:0000028
+        meaning: DUO:0000028
       return_to_database_or_resource:
-        meaning: duo:0000029
+        meaning: DUO:0000029
       clinical_care_use:
-        meaning: duo:0000043
+        meaning: DUO:0000043
       population_origins_ancestry_research_prohibited:
-        meaning: duo:0000044
+        meaning: DUO:0000044
 
   ProvEdgeRoleEnum:
     description: >-
@@ -322,21 +338,20 @@ enums:
         description: An entity an activity generated (dig.geneset "data output").
 
   # =========================================================================
-  # 3.0 ENUMS — hypothesis + nanopublication
+  # ENUMS — hypothesis + nanopublication
   # =========================================================================
 
   CausalLinkTypeEnum:
     description: >-
       Directness of a causal step. Values are copied VERBATIM from DISMECH's
-      `CausalLinkTypeEnum` (dismech:CausalLinkTypeEnum) so a NIH-DAPP causal
+      `CausalLinkTypeEnum` (dismech:CausalLinkTypeEnum) so a DAPPER causal
       step round-trips into a DISMECH `CausalEdge.causal_link_type` with no
       value translation. Do not add or rename values here without changing
       them upstream first.
     exact_mappings:
       - dismech:CausalLinkTypeEnum
     annotations:
-      nih:profile_level: "3.0"
-      nih:source_standard: DISMECH CausalLinkTypeEnum
+      dapper:source_standard: DISMECH CausalLinkTypeEnum
     permissible_values:
       DIRECT:
         description: The subject acts directly on the object; no intermediates.
@@ -354,8 +369,6 @@ enums:
       Lifecycle state of a hypothesis. `canonical` / `alternative` mirror the
       role DISMECH's `MechanisticHypothesis.status` plays when organising
       causal edges into competing explanatory models.
-    annotations:
-      nih:profile_level: "3.0"
     permissible_values:
       proposed:
         description: Generated but not yet reviewed.
@@ -379,8 +392,6 @@ enums:
       allowing an explicit "mixed"/"unknown" rather than overloading a boolean.
     close_mappings:
       - dismech:EvidenceItem
-    annotations:
-      nih:profile_level: "3.0"
     permissible_values:
       supports:
       refutes:
@@ -393,31 +404,29 @@ enums:
       `npx:hasNanopubType`. Each `meaning` was read from the live npx ontology
       document at http://purl.org/nanopub/x/.
     annotations:
-      nih:profile_level: "3.0"
-      nih:source_standard: Nanopub-X (http://purl.org/nanopub/x/)
+      dapper:source_standard: Nanopub-X (http://purl.org/nanopub/x/)
     permissible_values:
-      ExampleNanopub:
+      example_nanopub:
         meaning: npx:ExampleNanopub
         description: Published for testing; content should not be taken seriously.
-      DraftNanopub:
+      draft_nanopub:
         meaning: npx:DraftNanopub
         description: Marked as work-in-progress.
-      MetaNanopub:
+      meta_nanopub:
         meaning: npx:MetaNanopub
         description: A nanopublication about other nanopublications.
-      ProtectedNanopub:
+      protected_nanopub:
         meaning: npx:ProtectedNanopub
         description: Not intended to be shared publicly.
-      RetractionNanopub:
+      retraction_nanopub:
         meaning: npx:RetractionNanopub
         description: Retracts a previously published nanopublication.
-      IntroNanopub:
+      intro_nanopub:
         meaning: npx:IntroNanopub
         description: Introduces an agent and its public key.
 
 # ===========================================================================
 # SLOTS — the required Dock Knowledge Graph skeleton (do not remove).
-# Shapes match the canonical scaffold in the akleao CLI (models.py).
 # ===========================================================================
 slots:
   id:
@@ -427,7 +436,7 @@ slots:
     exact_mappings:
       - dcterms:identifier
     close_mappings:
-      - datacite:hasIdentifier
+      - DataCite:hasIdentifier
     aliases:
       - identifier
       - PID
@@ -495,7 +504,7 @@ classes:
   Node:
     abstract: true
     description: >-
-      Abstract base for all NIH-DAPP entities (datasets, agents, awards,
+      Abstract base for all DAPPER entities (datasets, agents, awards,
       publications, licenses, activities, mirror records, ...). Not used
       directly.
     slots:
@@ -523,7 +532,7 @@ classes:
     abstract: true
     class_uri: rdf:Statement
     description: >-
-      Abstract base for all NIH-DAPP attribution/provenance relationships,
+      Abstract base for all DAPPER attribution/provenance relationships,
       fixed to rdf:Statement. Not used directly.
     slots:
       - subject
@@ -531,7 +540,7 @@ classes:
       - object
 
   # ======================================================================
-  # NODE (entity) classes — 1.0 CORE
+  # NODE (entity) classes — CORE
   # ======================================================================
 
   # ======================================================================
@@ -555,7 +564,7 @@ classes:
         aliases:
           - dcc_url
         annotations:
-          nih:source_standard: CFDE dig.geneset dcc_url
+          dapper:source_standard: CFDE dig.geneset dcc_url
         description: URL to the source DCC portal page for this resource.
       drc_url:
         is_a: literal
@@ -567,7 +576,7 @@ classes:
         aliases:
           - drc_url
         annotations:
-          nih:source_standard: CFDE dig.geneset drc_url
+          dapper:source_standard: CFDE dig.geneset drc_url
         description: URL to the DRC (CFDE Workbench) entity/resource page.
 
   ProvenancedResource:
@@ -576,9 +585,9 @@ classes:
       The shared attribution + funding + publication + provenance + license +
       access + mirror slots carried by any citable resource. Applied as a mixin
       to both `Dataset` (a set of data) and `Set` (a collection of members, e.g.
-      a gene set), so George's mirroring invariant and the DataCite/PROV
+      a gene set), so the mirroring invariant and the DataCite/PROV
       attribution model bind identically to datasets and gene sets. Every
-      `nih:mirror_mutable: false` slot here is authoritative NIH provenance a
+      `dapper:mirror_mutable: false` slot here is authoritative NIH provenance a
       mirror MUST NOT rewrite.
     attributes:
       access_level:
@@ -590,13 +599,14 @@ classes:
           - schema:conditionsOfAccess
         aliases:
           - accessRights
+        description: Access tier for the resource (e.g. public, controlled).
       alternate_identifier:
         is_a: literal
         mixins: [hashable]
         multivalued: true
         slot_uri: dcterms:identifier
         exact_mappings:
-          - datacite:hasIdentifier
+          - DataCite:hasIdentifier
         description: >-
           Externally-assigned persistent identifiers for this resource — a DOI,
           an accession, a Handle, an ARK. `id` is DAPPER's own computed content
@@ -605,14 +615,14 @@ classes:
           and how do I cite it?". Both are worth keeping, so neither displaces
           the other. `identifier_type` names the scheme.
         annotations:
-          nih:profile_level: "3.2"
-          nih:source_standard: DataCite kernel-4 identifier/alternateIdentifiers
+          dapper:source_standard: DataCite kernel-4 identifier/alternateIdentifiers
       controlled_access:
         is_a: literal
         mixins: [hashable]
         range: boolean
         close_mappings:
           - dcterms:accessRights
+        description: Whether obtaining this resource requires a controlled-access request/review.
       # --- inline attribution/provenance links (each is a graph edge) ---
       has_creator:
         is_a: relationship
@@ -626,15 +636,16 @@ classes:
           - prov:wasAttributedTo
         description: Authoritative creators (Person/Organization CURIEs).
         annotations:
-          nih:authoritative: true
-          nih:mirror_mutable: false
-          nih:source_standard: DataCite kernel-4 creators
+          dapper:authoritative: true
+          dapper:mirror_mutable: false
+          dapper:source_standard: DataCite kernel-4 creators
       has_contributor:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         multivalued: true
         slot_uri: dcterms:contributor
+        description: Contributing agents (Person/Organization CURIEs), distinct from the authoritative creators.
       funded_by:
         is_a: relationship
         mixins: [hashable]
@@ -642,7 +653,7 @@ classes:
         multivalued: true
         slot_uri: schema:funding
         exact_mappings:
-          - frapo:isSupportedBy
+          - FRAPO:isSupportedBy
         close_mappings:
           - schema:funder
         aliases:
@@ -650,9 +661,9 @@ classes:
           - fundingReference
         description: Authoritative Award CURIEs supporting this resource.
         annotations:
-          nih:authoritative: true
-          nih:mirror_mutable: false
-          nih:source_standard: DataCite kernel-4 fundingReference
+          dapper:authoritative: true
+          dapper:mirror_mutable: false
+          dapper:source_standard: DataCite kernel-4 fundingReference
       is_described_by:
         is_a: relationship
         mixins: [hashable]
@@ -665,9 +676,9 @@ classes:
           - IsDescribedBy
         description: Authoritative primary Publication CURIEs.
         annotations:
-          nih:authoritative: true
-          nih:mirror_mutable: false
-          nih:source_standard: DataCite kernel-4 relatedIdentifier/IsDescribedBy
+          dapper:authoritative: true
+          dapper:mirror_mutable: false
+          dapper:source_standard: DataCite kernel-4 relatedIdentifier/IsDescribedBy
       has_license:
         is_a: relationship
         mixins: [hashable]
@@ -690,12 +701,14 @@ classes:
         range: uriorcurie
         multivalued: true
         slot_uri: prov:wasDerivedFrom
+        description: Upstream resource(s) (CURIEs) this one was derived from.
       was_attributed_to:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         multivalued: true
         slot_uri: prov:wasAttributedTo
+        description: Agent(s) (CURIEs) this resource is attributed to.
       has_recommended_citation:
         is_a: relationship
         mixins: [hashable]
@@ -703,8 +716,8 @@ classes:
         slot_uri: dcterms:bibliographicCitation
         description: The authoritative RecommendedCitation node.
         annotations:
-          nih:authoritative: true
-          nih:mirror_mutable: false
+          dapper:authoritative: true
+          dapper:mirror_mutable: false
       # --- mirror (append-only; NOT authoritative) ---
       has_mirror_provenance:
         is_a: relationship
@@ -715,14 +728,14 @@ classes:
           Mirror-appended provenance records. Append-only; mirrors add these
           but must not touch authoritative fields.
         annotations:
-          nih:mirror_mutable: true
-          nih:append_only: true
+          dapper:mirror_mutable: true
+          dapper:append_only: true
 
   Dataset:
     is_a: HashableNode
     mixins:
       - ProvenancedResource
-      # 3.0: lets a Dataset point at the DISMECH entry describing its science.
+      # Lets a Dataset point at the DISMECH entry describing its science.
       - DismechLinked
     class_uri: schema:Dataset
     aliases:
@@ -731,10 +744,10 @@ classes:
       - resource
     exact_mappings:
       - dcat:Dataset
-      - dctype:Dataset
+      - dctypes:Dataset
     close_mappings:
       - prov:Entity
-      # 3.0 cross-walk. Complementary halves of one idea: DISMECH's Dataset
+      # Cross-walk. Complementary halves of one idea: DISMECH's Dataset
       # describes the SCIENCE (organism, data_type, sample_types, platform,
       # findings); this one describes the ATTRIBUTION (creators, funding,
       # licence, DUO terms, DRS identity). Neither duplicates the other, and
@@ -754,12 +767,12 @@ classes:
         mixins: [hashable]
         range: IdentifierTypeEnum
         close_mappings:
-          - datacite:usesIdentifierScheme
+          - DataCite:usesIdentifierScheme
         aliases:
           - identifierType
         annotations:
-          nih:source_standard: DataCite kernel-4 identifierType
-        description: Type of the dataset's persistent identifier (e.g. DOI).
+          dapper:source_standard: DataCite kernel-4 identifierType
+        description: Type of the dataset's persistent identifier (e.g. doi).
       version:
         is_a: literal
         mixins: [hashable]
@@ -775,7 +788,8 @@ classes:
         aliases:
           - resourceTypeGeneral
         annotations:
-          nih:source_standard: DataCite kernel-4 resourceTypeGeneral
+          dapper:source_standard: DataCite kernel-4 resourceTypeGeneral
+        description: DataCite-style resource type (resourceTypeGeneral) for this dataset.
       publication_year:
         is_a: literal
         mixins: [hashable]
@@ -786,7 +800,8 @@ classes:
         aliases:
           - publicationYear
         annotations:
-          nih:source_standard: DataCite kernel-4 publicationYear
+          dapper:source_standard: DataCite kernel-4 publicationYear
+        description: Year the dataset was published.
       description:
         is_a: literal
         mixins: [hashable]
@@ -795,6 +810,7 @@ classes:
           - schema:description
         aliases:
           - abstract
+        description: Free-text description or abstract of the dataset.
       publisher:
         is_a: relationship
         mixins: [hashable]
@@ -804,23 +820,21 @@ classes:
           - schema:publisher
         description: CURIE/URI of the publishing Organization.
       # attribution/funding/provenance/license/access/mirror slots come from
-      # the ProvenancedResource mixin. Dataset-specific 2.0 links follow.
-      # --- 2.0 links ---
+      # the ProvenancedResource mixin. Dataset-specific links follow.
+      # --- additional links ---
       has_data_use_term:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         multivalued: true
         broad_mappings:
-          - duo:0000001
-          - duo:0000017
+          - DUO:0000001
+          - DUO:0000017
         close_mappings:
           - dcterms:accessRights
         aliases:
           - data_use_limitations
         description: DUO term CURIEs constraining permitted use.
-        annotations:
-          nih:profile_level: "2.0"
       has_drs_object:
         is_a: relationship
         mixins: [hashable]
@@ -829,23 +843,20 @@ classes:
         slot_uri: dcat:distribution
         close_mappings:
           - schema:distribution
-        annotations:
-          nih:profile_level: "2.0"
+        description: GA4GH DrsObject CURIEs (file-level identity) making up this dataset.
       packaged_as:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         close_mappings:
           - dcterms:isPartOf
-        annotations:
-          nih:profile_level: "2.0"
+        description: CURIE of the RoCratePackage this dataset is packaged as.
       has_workflow_provenance:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         multivalued: true
-        annotations:
-          nih:profile_level: "2.0"
+        description: BioComputeObject CURIEs describing the workflow(s) that produced this dataset.
 
   # ======================================================================
   # SET — a collection of members (prov:Collection). Distinct from Dataset
@@ -919,8 +930,7 @@ classes:
       "gene set" is frequently a *library* of many named term→genes sets (the
       .gmt); `n_genes` counts unique genes, `n_sets` the named subsets.
     annotations:
-      nih:profile_level: "2.0"
-      nih:source_standard: dig.geneset 0.1.0 (flannick/dig-gene-set-extractors)
+      dapper:source_standard: dig.geneset 0.1.0 (flannick/dig-gene-set-extractors)
     attributes:
       assay:
         is_a: literal
@@ -965,6 +975,416 @@ classes:
         mixins: [hashable]
         description: Namespace prefix applied to term-derived set names (e.g. HuBMAP).
 
+  # ======================================================================
+  # BLOCK — SINGLE-CELL: GENE PROGRAM / CELL STATE. A
+  # GeneProgram is a coordinated pattern of gene activity — a factor/module
+  # inferred from expression covariance (e.g. cNMF, NMF, Spectra, WGCNA) or a
+  # curated gene module — representing a biological process a cell can turn
+  # on or off; it extends Set the same way GeneSet does, with genes as
+  # members. A CellState is the cellular phenotype defined by which
+  # GenePrograms are active in a cell (or cell population) at once —
+  # distinct from a cell TYPE (a Cell Ontology class), which is what lineage
+  # a cell belongs to rather than what state it is currently in.
+  # ======================================================================
+
+  GeneProgram:
+    is_a: Set
+    aliases:
+      - gene program
+      - gene expression program
+      - GEP
+      - metagene
+    description: >-
+      A Set whose members are genes that co-vary as a coordinated unit and
+      together carry out a biological process — a factor from matrix
+      factorization (cNMF, NMF, Spectra, WGCNA) or a curated gene module. No
+      ontology term is asserted as class_uri — none resolves to "gene
+      program" / "gene expression program" (verified against EBI OLS4) — so
+      GeneProgram grounds via `is_a: Set` (prov:Collection), the same way
+      GeneSet does. Distinct from GeneSet: a GeneSet is typically a static
+      annotation (e.g. an MSigDB term); a GeneProgram is inferred from
+      expression covariance and is usually a quantitative loading over genes,
+      not just membership. `member_weights`, when present, is that loading —
+      one number per gene in `members`, positionally paired. A very large
+      loading matrix should still reference its source file via the
+      member-manifest escape hatch `Set` already provides rather than
+      enumerate weights here.
+    attributes:
+      assay:
+        is_a: literal
+        mixins: [hashable]
+        close_mappings:
+          - obo:OBI_0000070      # assay
+        description: Assay the program was inferred from (e.g. scRNA-seq).
+      organism:
+        is_a: literal
+        mixins: [hashable]
+        close_mappings:
+          - schema:taxonomicRange
+        description: Organism (e.g. human).
+      inference_method:
+        is_a: literal
+        mixins: [hashable]
+        description: >-
+          Method used to derive the program (e.g. cNMF, NMF, Spectra, WGCNA,
+          curated).
+      biological_process:
+        is_a: relationship
+        mixins: [hashable]
+        range: uriorcurie
+        multivalued: true
+        description: >-
+          GO biological process CURIE(s) this program represents, e.g.
+          `obo:GO_0006629`.
+      n_genes:
+        is_a: literal
+        mixins: [hashable]
+        range: integer
+        aliases:
+          - n_members
+        description: Count of unique genes in the program.
+      member_weights:
+        is_a: literal
+        mixins: [hashable]
+        range: float
+        multivalued: true
+        aliases:
+          - loadings
+          - gene_weights
+        description: >-
+          Quantitative loading/weight for each gene in `members`, positionally
+          paired and equal in length to it (`members[i]` <->
+          `member_weights[i]`) — e.g. an NMF/cNMF factor loading, or another
+          continuous per-gene activity score. Not necessarily raw expression:
+          it is whatever per-gene number the `inference_method` produces.
+          Reordering or resizing one list without the other breaks the
+          pairing.
+      quality_score:
+        range: GeneProgramQualityScore
+        inlined: true
+        mixins: [hashable]
+        description: >-
+          Assessment of this program's overall quality — a composite
+          `quality_score` value plus the `components` (stability, confounders,
+          validity) it is composited from — see GeneProgramQualityScore.
+
+  GeneProgramQualityScore:
+    aliases:
+      - gene program quality score
+      - GEP quality score
+    description: >-
+      Assessment of the overall quality of a `GeneProgram`, embedded inline on
+      its `quality_score` attribute. One number summarizing how trustworthy a
+      program is.
+    attributes:
+      quality_score:
+        is_a: literal
+        mixins: [hashable]
+        range: float
+        minimum_value: 0
+        maximum_value: 100
+        description: >-
+          Weighted composite of `components`: 20% Stability + 30% Confounders
+          + 50% Validity.
+      components:
+        range: GeneProgramQualityComponents
+        inlined: true
+        mixins: [hashable]
+        description: The three sub-scores `quality_score` is composited from.
+
+  GeneProgramQualityComponents:
+    description: >-
+      The three independent dimensions assessed for a `GeneProgram`'s quality,
+      nested under `GeneProgramQualityScore.components`.
+    attributes:
+      stability_score:
+        is_a: literal
+        mixins: [hashable]
+        range: float
+        minimum_value: 0
+        maximum_value: 100
+        description: >-
+          Did the method run correctly? Measures reproducibility of gene
+          programs across cNMF runs and random seeds. Weighted 20% into
+          `quality_score`.
+      confounder_score:
+        is_a: literal
+        mixins: [hashable]
+        range: float
+        minimum_value: 0
+        maximum_value: 100
+        description: >-
+          Are there technical confounders masking the biology? Measures
+          cross-dataset alignment and agreement — batch effects are one
+          example of a confounder. Weighted 30% into `quality_score`.
+      validity_score:
+        is_a: literal
+        mixins: [hashable]
+        range: float
+        minimum_value: 0
+        maximum_value: 100
+        description: >-
+          Is the output real biology? Evidence from hallmark pathway
+          enrichment, GWAS genetic signals, and cell-surface markers.
+          Weighted 50% into `quality_score`.
+
+  CellState:
+    is_a: HashableNode
+    mixins:
+      - ProvenancedResource
+    aliases:
+      - cellular phenotype
+      - cell type state
+    description: >-
+      A cellular phenotype defined by the combination of GenePrograms active
+      in a cell (or cell population) — e.g. "activated", "exhausted",
+      "hypoxic". Distinct from a cell TYPE (a Cell Ontology class, e.g.
+      `obo:CL_0000542`): a CellState is a functional/transcriptional state a
+      cell of a given type can transition into and out of, defined by which
+      programs are switched on — not which lineage the cell belongs to. No
+      ontology term is asserted as class_uri — no term resolving to "cell
+      state" as a generic, cross-cell-type phenotype was found (verified
+      against EBI OLS4) — so CellState grounds via `is_a: HashableNode`
+      directly. Mixes in `ProvenancedResource` so a CellState is citable and
+      attributable the same way a `GeneProgram` (via `Set`) already is.
+    attributes:
+      description:
+        is_a: literal
+        mixins: [hashable]
+        description: Free-text description of the cell state.
+      cell_type:
+        is_a: relationship
+        mixins: [hashable]
+        range: uriorcurie
+        description: >-
+          Cell Ontology (CL) CURIE of the cell type this state applies to,
+          e.g. `obo:CL_0000542`.
+      organism:
+        is_a: literal
+        mixins: [hashable]
+        close_mappings:
+          - schema:taxonomicRange
+        description: Organism (e.g. human).
+      has_program:
+        is_a: relationship
+        mixins: [hashable]
+        range: uriorcurie
+        multivalued: true
+        slot_uri: dapper:hasProgram
+        description: >-
+          GeneProgram id(s) active in this state. The combination of these —
+          not any single program — is what defines the state.
+      allow_hard_call:
+        is_a: literal
+        mixins: [hashable]
+        range: boolean
+        description: Whether this state may be manually called with high confidence despite mixed evidence.
+      biological_category:
+        is_a: literal
+        mixins: [hashable]
+        description: High-level biological category this state belongs to.
+      biological_description:
+        is_a: literal
+        mixins: [hashable]
+        description: Longer prose description of the state's biology.
+      cell_type_id:
+        is_a: literal
+        mixins: [hashable]
+        description: Ontology identifier for the cell type this state applies to.
+      cell_type_label:
+        is_a: literal
+        mixins: [hashable]
+        description: Human-readable label for the cell type.
+      curation_notes:
+        is_a: literal
+        mixins: [hashable]
+        description: Free-text curator notes on this state.
+      curation_version:
+        is_a: literal
+        mixins: [hashable]
+        description: Version of the curation applied to this state.
+      disease_context:
+        is_a: literal
+        mixins: [hashable]
+        description: Disease context this state was curated in, if any.
+      display_name:
+        is_a: literal
+        mixins: [hashable]
+        description: Human-readable name for portal display.
+      display_order:
+        is_a: literal
+        mixins: [hashable]
+        range: integer
+        description: Sort order for portal display.
+      do_not_overinterpret_as:
+        is_a: literal
+        mixins: [hashable]
+        description: Caveat naming a stronger claim this state should not be read as.
+      gene_expression_caveat:
+        is_a: literal
+        mixins: [hashable]
+        description: Caveat about interpreting the underlying gene expression evidence.
+      gene_expression_followup:
+        is_a: literal
+        mixins: [hashable]
+        description: Suggested follow-up analysis for the gene expression evidence.
+      gene_expression_interpretation:
+        is_a: literal
+        mixins: [hashable]
+        description: Curator's interpretation of the gene expression evidence.
+      gene_expression_overinterpretation_warning:
+        is_a: literal
+        mixins: [hashable]
+        description: Warning against overinterpreting the gene expression evidence.
+      gene_set_description:
+        is_a: literal
+        mixins: [hashable]
+        description: Description of the gene set(s) underlying this state.
+      hard_call_notes:
+        is_a: literal
+        mixins: [hashable]
+        description: Notes justifying a hard (high-confidence) call for this state.
+      interpretation_caveat:
+        is_a: literal
+        mixins: [hashable]
+        description: Caveat qualifying the state's interpretation.
+      interpretation_status:
+        is_a: literal
+        mixins: [hashable]
+        description: Status of the curator's interpretation (e.g. provisional, confirmed).
+      is_composite_required:
+        is_a: literal
+        mixins: [hashable]
+        range: boolean
+        description: Whether more than one GeneProgram must be active for this state to hold.
+      is_qc:
+        is_a: literal
+        mixins: [hashable]
+        range: boolean
+        description: Whether this state represents a quality-control artifact rather than biology.
+      known_limitations:
+        is_a: literal
+        mixins: [hashable]
+        description: Known limitations of the evidence supporting this state.
+      manual_review_status:
+        is_a: literal
+        mixins: [hashable]
+        description: Status of manual curator review.
+      marker_panel_context:
+        is_a: literal
+        mixins: [hashable]
+        description: Marker panel this state was curated against.
+      marker_provenance_summary:
+        is_a: literal
+        mixins: [hashable]
+        description: Summary of where the defining markers came from.
+      n_markers:
+        is_a: literal
+        mixins: [hashable]
+        range: integer
+        description: Count of markers used to define this state.
+      negative_checks:
+        is_a: literal
+        mixins: [hashable]
+        description: Checks performed to rule out alternative explanations.
+      portal_display_establishment:
+        is_a: literal
+        mixins: [hashable]
+        description: How firmly established this state is, as shown in the portal.
+      portal_methods_details:
+        is_a: literal
+        mixins: [hashable]
+        description: Methods details shown for this state in the portal.
+      portal_primary_badges:
+        is_a: literal
+        mixins: [hashable]
+        description: Primary badges shown for this state in the portal.
+      portal_user_summary:
+        is_a: literal
+        mixins: [hashable]
+        description: User-facing summary of this state shown in the portal.
+      portal_visibility:
+        is_a: literal
+        mixins: [hashable]
+        description: Visibility tier controlling whether this state is shown in the portal.
+      provenance_warning_count:
+        is_a: literal
+        mixins: [hashable]
+        range: integer
+        description: Count of provenance warnings flagged for this state.
+      qc_sensitivity:
+        is_a: literal
+        mixins: [hashable]
+        description: Sensitivity of the QC check that flagged this state.
+      quality:
+        is_a: literal
+        mixins: [hashable]
+        description: Overall quality tier assigned to this state.
+      quality_badges:
+        is_a: literal
+        mixins: [hashable]
+        description: Quality badges shown for this state.
+      recommended_portal_label:
+        is_a: literal
+        mixins: [hashable]
+        description: Recommended short label for portal display.
+      recommended_portal_summary:
+        is_a: literal
+        mixins: [hashable]
+        description: Recommended summary text for portal display.
+      release_class:
+        is_a: literal
+        mixins: [hashable]
+        description: Release classification controlling readiness for publication.
+      required_supporting_evidence:
+        is_a: literal
+        mixins: [hashable]
+        description: Evidence required to support this state's call.
+      score_scope:
+        is_a: literal
+        mixins: [hashable]
+        description: Scope over which the state's score was computed.
+      source_gmt:
+        is_a: literal
+        mixins: [hashable]
+        description: Source .gmt file the underlying gene set was drawn from.
+      source_workbook:
+        is_a: literal
+        mixins: [hashable]
+        description: Source spreadsheet/workbook the curation was recorded in.
+      state_class:
+        is_a: literal
+        mixins: [hashable]
+        description: Classification of the state (e.g. functional, quality-control).
+      state_establishment_level:
+        is_a: literal
+        mixins: [hashable]
+        description: Confidence level at which this state is considered established.
+      state_establishment_rationale:
+        is_a: literal
+        mixins: [hashable]
+        description: Rationale for the state's establishment level.
+      state_id:
+        is_a: literal
+        mixins: [hashable]
+        description: Identifier for this state in the source curation workbook.
+      state_label:
+        is_a: literal
+        mixins: [hashable]
+        description: Short label for this state.
+      state_level_citation_ids:
+        is_a: literal
+        mixins: [hashable]
+        description: Citation identifiers supporting this state.
+      tissue_id:
+        is_a: literal
+        mixins: [hashable]
+        description: Ontology identifier for the tissue this state was observed in.
+      tissue_label:
+        is_a: literal
+        mixins: [hashable]
+        description: Human-readable label for the tissue.
+
   Agent:
     mixin: true
     class_uri: prov:Agent
@@ -989,6 +1409,7 @@ classes:
     aliases:
       - individual
       - investigator
+    description: An individual person acting as a creator, contributor, or other responsible party.
     attributes:
       given_name:
         is_a: literal
@@ -999,6 +1420,7 @@ classes:
         aliases:
           - givenName
           - first name
+        description: Given (first) name.
       family_name:
         is_a: literal
         mixins: [hashable]
@@ -1009,14 +1431,15 @@ classes:
           - familyName
           - surname
           - last name
+        description: Family (last) name.
       orcid:
         is_a: literal
         mixins: [hashable]
         range: uriorcurie
         slot_uri: schema:identifier
         close_mappings:
-          - datacite:hasIdentifier
-          - datacite:PersonalIdentifier
+          - DataCite:hasIdentifier
+          - DataCite:PersonalIdentifier
         aliases:
           - ORCID iD
           - nameIdentifier
@@ -1036,6 +1459,7 @@ classes:
         range: CreatorRoleEnum
         close_mappings:
           - dcterms:creator
+        description: The role this agent played as a creator of the resource.
       contributor_role:
         is_a: literal
         mixins: [hashable]
@@ -1044,6 +1468,7 @@ classes:
           - dcterms:contributor
         aliases:
           - contributorType
+        description: The role this agent played as a contributor to the resource.
 
   Organization:
     is_a: HashableNode
@@ -1056,6 +1481,7 @@ classes:
     aliases:
       - institution
       - consortium
+    description: An institution, consortium, or other organizational agent acting as a creator, contributor, or other responsible party.
     attributes:
       ror:
         is_a: literal
@@ -1063,8 +1489,8 @@ classes:
         range: uriorcurie
         slot_uri: schema:identifier
         close_mappings:
-          - datacite:hasIdentifier
-          - datacite:OrganizationIdentifier
+          - DataCite:hasIdentifier
+          - DataCite:OrganizationIdentifier
         aliases:
           - ROR ID
         description: ROR identifier (https://ror.org/...).
@@ -1074,6 +1500,7 @@ classes:
         range: CreatorRoleEnum
         close_mappings:
           - dcterms:creator
+        description: The role this agent played as a creator of the resource.
       contributor_role:
         is_a: literal
         mixins: [hashable]
@@ -1082,12 +1509,13 @@ classes:
           - dcterms:contributor
         aliases:
           - contributorType
+        description: The role this agent played as a contributor to the resource.
 
   Award:
     is_a: HashableNode
     class_uri: schema:MonetaryGrant
     exact_mappings:
-      - frapo:Grant
+      - FRAPO:Grant
     close_mappings:
       - schema:Grant
     aliases:
@@ -1100,45 +1528,49 @@ classes:
       Research Administration and Projects Ontology), since kernel-4 itself is
       an XML Schema with no RDF terms.
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
-      nih:source_standard: DataCite kernel-4 fundingReference
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
+      dapper:source_standard: DataCite kernel-4 fundingReference
     attributes:
       funder_name:
         is_a: literal
         mixins: [hashable]
-        slot_uri: frapo:hasFundingAgency
+        slot_uri: FRAPO:hasFundingAgency
         close_mappings:
           - schema:funder
-          - frapo:FundingAgency
+          - FRAPO:FundingAgency
         aliases:
           - funderName
+        description: Name of the funding agency (e.g. National Institutes of Health).
       funder_identifier:
         is_a: literal
         mixins: [hashable]
         range: uriorcurie
         slot_uri: schema:identifier
         close_mappings:
-          - datacite:FunderIdentifier
+          - DataCite:FunderIdentifier
         aliases:
           - funderIdentifier
+        description: Identifier for the funding agency (e.g. a Crossref Funder ID or ROR).
       funder_identifier_type:
         is_a: literal
         mixins: [hashable]
         range: FunderIdentifierTypeEnum
         close_mappings:
-          - datacite:usesIdentifierScheme
+          - DataCite:usesIdentifierScheme
         aliases:
           - funderIdentifierType
+        description: Scheme used by `funder_identifier`.
       award_number:
         is_a: literal
         mixins: [hashable]
-        slot_uri: frapo:hasGrantNumber
+        slot_uri: FRAPO:hasGrantNumber
         close_mappings:
           - schema:identifier
         aliases:
           - awardNumber
           - grant number
+        description: The grant/award number.
       award_uri:
         is_a: literal
         mixins: [hashable]
@@ -1146,12 +1578,14 @@ classes:
         slot_uri: schema:url
         aliases:
           - awardURI
+        description: URL to the award's record (e.g. an NIH RePORTER project page).
       award_title:
         is_a: literal
         mixins: [hashable]
         slot_uri: dcterms:title
         aliases:
           - awardTitle
+        description: Title of the funded award/project.
       grant_administering_institute:
         is_a: literal
         mixins: [hashable]
@@ -1166,20 +1600,20 @@ classes:
       - fabio:ResearchPaper
     close_mappings:
       - schema:CreativeWork
-      # 3.0 cross-walk. DISMECH's PublicationReference is richer on USE
+      # Cross-walk. DISMECH's PublicationReference is richer on USE
       # (found_in, findings — which deep-research output cited it, and what it
       # showed) and thinner on IDENTITY (a bare PMID). This class is the
       # identity side; the use side belongs on the edge to the publication.
       - dismech:PublicationReference
-      - dctype:Text
+      - dctypes:Text
     aliases:
       - paper
       - article
       - primary publication
     description: A publication describing or related to the dataset.
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     attributes:
       title:
         is_a: literal
@@ -1187,15 +1621,17 @@ classes:
         slot_uri: dcterms:title
         exact_mappings:
           - schema:name
+        description: Title of the publication.
       doi:
         is_a: literal
         mixins: [hashable]
         range: uriorcurie
         slot_uri: schema:identifier
         close_mappings:
-          - datacite:ResourceIdentifier
+          - DataCite:ResourceIdentifier
         aliases:
           - DOI
+        description: Digital Object Identifier for the publication.
       pmid:
         is_a: literal
         mixins: [hashable]
@@ -1210,6 +1646,7 @@ classes:
         slot_uri: dcterms:bibliographicCitation
         close_mappings:
           - schema:citation
+        description: Formatted bibliographic citation for the publication.
       relationship_type:
         is_a: literal
         mixins: [hashable]
@@ -1219,7 +1656,8 @@ classes:
         aliases:
           - relationType
         annotations:
-          nih:source_standard: DataCite kernel-4 relationType
+          dapper:source_standard: DataCite kernel-4 relationType
+        description: How this publication relates to the dataset (e.g. is_described_by).
 
   License:
     is_a: HashableNode
@@ -1240,6 +1678,7 @@ classes:
         slot_uri: schema:url
         close_mappings:
           - dcterms:license
+        description: URL to the license text.
       usage_terms:
         is_a: literal
         mixins: [hashable]
@@ -1257,7 +1696,7 @@ classes:
     class_uri: prov:Activity
     close_mappings:
       - schema:Action
-      # 3.0 cross-walk. DISMECH's CurationEvent (curation_timestamp /
+      # Cross-walk. DISMECH's CurationEvent (curation_timestamp /
       # curation_model / curation_action / curation_description) is a homegrown
       # mini-PROV for AI-assisted curation. This PROV-O Activity subsumes it:
       # curation_model -> an npx:SoftwareAgent attributed via the provenance
@@ -1291,13 +1730,13 @@ classes:
         close_mappings:
           - schema:command
         annotations:
-          nih:source_standard: dig.geneset analysis.command
+          dapper:source_standard: dig.geneset analysis.command
         description: The canonical (replay) command that ran this activity.
       observed_command:
         is_a: literal
         mixins: [hashable]
         annotations:
-          nih:source_standard: dig.geneset analysis.observed_command
+          dapper:source_standard: dig.geneset analysis.observed_command
         description: The original runtime command captured, if different from replay.
       script_url:
         is_a: literal
@@ -1306,7 +1745,7 @@ classes:
         close_mappings:
           - schema:codeRepository
         annotations:
-          nih:source_standard: dig.geneset analysis.script_url
+          dapper:source_standard: dig.geneset analysis.script_url
         description: URL to the script/notebook implementing this activity.
       repo_url:
         is_a: literal
@@ -1324,19 +1763,19 @@ classes:
           - version
           - git_commit
         annotations:
-          nih:source_standard: dig.geneset analysis.version
+          dapper:source_standard: dig.geneset analysis.version
         description: Version or git commit of the code that ran.
       entrypoint:
         is_a: literal
         mixins: [hashable]
         annotations:
-          nih:source_standard: dig.geneset analysis.environment.entrypoint
+          dapper:source_standard: dig.geneset analysis.environment.entrypoint
         description: CLI/module entrypoint invoked.
       container_image:
         is_a: literal
         mixins: [hashable]
         annotations:
-          nih:source_standard: dig.geneset analysis.environment.container_image
+          dapper:source_standard: dig.geneset analysis.environment.container_image
         description: Container image the activity ran in, if any.
       software_name:
         is_a: literal
@@ -1346,11 +1785,13 @@ classes:
           - prov:SoftwareAgent
         aliases:
           - software
+        description: Name of the software that performed the activity.
       software_version:
         is_a: literal
         mixins: [hashable]
         close_mappings:
           - schema:softwareVersion
+        description: Version of the software that performed the activity.
       generated_at_time:
         is_a: literal
         mixins: [unhashable]  # temporal
@@ -1360,6 +1801,7 @@ classes:
           - schema:dateCreated
         aliases:
           - generatedAtTime
+        description: When the activity ran.
       has_lineage_step:
         is_a: relationship
         mixins: [hashable]
@@ -1368,6 +1810,7 @@ classes:
         slot_uri: dcterms:hasPart
         close_mappings:
           - prov:hadMember
+        description: LineageStep CURIEs making up this activity's ordered provenance lineage.
       has_agentic_workspace:
         is_a: relationship
         mixins: [hashable]
@@ -1378,8 +1821,13 @@ classes:
           AI agent. Complements `command` / `container_image`: those are the
           machine replay path, this is the agentic one. Multivalued because the
           same analysis may be reproducible in more than one workspace.
-        annotations:
-          nih:profile_level: "3.1"
+
+  # ======================================================================
+  # BLOCK — AGENTIC REPLAY. `AgenticWorkspace` is the workspace and prompt
+  # an AI agent can use to re-run an Activity, alongside the machine replay
+  # path (`command` / `container_image` / `code_version`) rather than
+  # instead of it — a prompt is not a deterministic replay mechanism.
+  # ======================================================================
 
   AgenticWorkspace:
     is_a: HashableNode
@@ -1405,8 +1853,6 @@ classes:
       output — that is what `command` plus `container_image` plus
       `code_version` are for. Record the model and version actually used so a
       divergent re-run can at least be explained.
-    annotations:
-      nih:profile_level: "3.1"
     attributes:
       workspace_url:
         is_a: literal
@@ -1415,13 +1861,11 @@ classes:
         slot_uri: schema:url
         description: >-
           Resolvable URL for the workspace — where a person or agent goes to
-          open it. For akleao this is a fork URL,
+          open it. In the example of akleao this is a fork URL,
           `https://www.akleao.com/fork/<slug-id>`: one shareable link that
           opens the workspace, rather than a path through project and branch
           ids. Required in spirit: a workspace nobody can reach is not
           provenance, it is a note.
-        annotations:
-          nih:profile_level: "3.1"
       workspace_key:
         is_a: literal
         mixins: [hashable]
@@ -1429,15 +1873,11 @@ classes:
           The hosting platform's own identifier for the workspace, when it
           differs from this node's `id` — for an akleao fork, the slug in its
           URL.
-        annotations:
-          nih:profile_level: "3.1"
       platform:
         is_a: literal
         mixins: [unhashable]  # environmental
         description: >-
           The system hosting the workspace, e.g. "akleao", "Claude Code".
-        annotations:
-          nih:profile_level: "3.1"
       regeneration_prompt:
         is_a: literal
         mixins: [hashable]
@@ -1445,16 +1885,12 @@ classes:
           The prompt that asks an agent to regenerate this analysis. Write it
           self-contained: an agent opening the workspace cold should be able to
           act on it without the surrounding conversation.
-        annotations:
-          nih:profile_level: "3.1"
       agent_model:
         is_a: literal
         mixins: [hashable]
         description: >-
           Model that ran, or is expected to run, the prompt (e.g.
           "claude-fable-5"). Recorded so a divergent re-run can be explained.
-        annotations:
-          nih:profile_level: "3.1"
       agent_role:
         is_a: relationship
         mixins: [hashable]
@@ -1465,15 +1901,11 @@ classes:
           non-human author.
         close_mappings:
           - prov:wasAssociatedWith
-        annotations:
-          nih:profile_level: "3.1"
       last_run:
         is_a: literal
         mixins: [unhashable]  # temporal
         range: datetime
         description: When the prompt was last executed in this workspace.
-        annotations:
-          nih:profile_level: "3.1"
 
   LineageStep:
     is_a: HashableNode
@@ -1492,6 +1924,7 @@ classes:
           - schema:position
         aliases:
           - order
+        description: Ordinal position of this step within the lineage.
       activity:
         is_a: literal
         mixins: [hashable]
@@ -1514,8 +1947,8 @@ classes:
       - how to cite
     description: The recommended human-readable citation and its required elements.
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     attributes:
       citation_text:
         is_a: literal
@@ -1523,6 +1956,7 @@ classes:
         slot_uri: dcterms:bibliographicCitation
         close_mappings:
           - schema:citation
+        description: The recommended human-readable citation text.
       required_elements:
         is_a: literal
         mixins: [hashable]
@@ -1542,8 +1976,8 @@ classes:
       MirrorProvenance record but must never rewrite authoritative NIH
       provenance (see the mirroring invariant at the top of this schema).
     annotations:
-      nih:mirror_mutable: true
-      nih:append_only: true
+      dapper:mirror_mutable: true
+      dapper:append_only: true
     attributes:
       mirror_provider:
         is_a: literal
@@ -1554,6 +1988,7 @@ classes:
       mirror_region:
         is_a: literal
         mixins: [hashable]
+        description: Geographic/hosting region of the mirror (e.g. us-west-1).
       synced_from:
         is_a: literal
         mixins: [hashable]
@@ -1566,6 +2001,7 @@ classes:
         range: datetime
         close_mappings:
           - prov:generatedAtTime
+        description: When the mirror last synced this object.
       source_manifest_hash:
         is_a: literal
         mixins: [hashable]
@@ -1580,8 +2016,8 @@ classes:
         description: sha256 of the mirrored object.
 
   # ======================================================================
-  # NODE classes — 2.0 ADDITIONS
-  # (best-effort interpretation ahead of George's final 2.0 schema)
+  # NODE classes — ADDITIONS
+  # (best-effort interpretation ahead of the final upstream schema)
   # ======================================================================
 
   DrsObject:
@@ -1600,14 +2036,14 @@ classes:
       no DRS class_uri — it is grounded in DCAT/schema.org instead, with the
       DRS field names preserved as aliases.
     annotations:
-      nih:profile_level: "2.0"
-      nih:source_standard: GA4GH DRS v1.x DrsObject
+      dapper:source_standard: GA4GH DRS v1.x DrsObject
     attributes:
       drs_id:
         is_a: literal
         mixins: [hashable]
         close_mappings:
           - schema:identifier
+        description: GA4GH DRS object identifier.
       self_uri:
         is_a: literal
         mixins: [hashable]
@@ -1624,6 +2060,7 @@ classes:
         slot_uri: dcat:byteSize
         close_mappings:
           - schema:contentSize
+        description: Size of the object in bytes.
       checksum_sha256:
         is_a: literal
         mixins: [hashable]
@@ -1631,6 +2068,7 @@ classes:
           - spdx:checksum
         aliases:
           - sha256
+        description: Hex SHA-256 checksum of the object.
       mime_type:
         is_a: literal
         mixins: [hashable]
@@ -1639,6 +2077,7 @@ classes:
           - schema:encodingFormat
         aliases:
           - mediaType
+        description: MIME type of the object.
       access_methods:
         is_a: literal
         mixins: [hashable]
@@ -1664,11 +2103,10 @@ classes:
       by CFDE C2M2 (Crosscut Metadata Model) properties. C2M2 is a tabular
       metadata model with no RDF vocabulary, so this class carries no C2M2
       class_uri — it is grounded in DCAT/schema.org, with the C2M2 field names
-      preserved as attribute names + `nih:source_standard` annotations (the same
+      preserved as attribute names + `dapper:source_standard` annotations (the same
       pattern as DrsObject).
     annotations:
-      nih:profile_level: "2.0"
-      nih:source_standard: CFDE C2M2 file
+      dapper:source_standard: CFDE C2M2 file
     attributes:
       description:
         is_a: literal
@@ -1676,20 +2114,22 @@ classes:
         slot_uri: dcterms:description
         exact_mappings:
           - schema:description
+        description: Free-text description of the file.
       filename:
         is_a: literal
         mixins: [hashable]
         close_mappings:
           - schema:name
         annotations:
-          nih:source_standard: C2M2 filename
+          dapper:source_standard: C2M2 filename
+        description: The file's name.
       persistent_id:
         is_a: literal
         mixins: [hashable]
         close_mappings:
-          - datacite:hasIdentifier
+          - DataCite:hasIdentifier
         annotations:
-          nih:source_standard: C2M2 persistent_id
+          dapper:source_standard: C2M2 persistent_id
         description: C2M2 persistent identifier (UUID).
       local_id:
         is_a: literal
@@ -1698,7 +2138,7 @@ classes:
         close_mappings:
           - dcat:accessURL
         annotations:
-          nih:source_standard: C2M2 local_id
+          dapper:source_standard: C2M2 local_id
         description: DCC-local identifier, typically a bucket path (gs://, s3://) or URL.
       c2m2_uuid:
         is_a: literal
@@ -1706,7 +2146,7 @@ classes:
         aliases:
           - _uuid
         annotations:
-          nih:source_standard: C2M2 _uuid
+          dapper:source_standard: C2M2 _uuid
         description: Internal C2M2 UUID for the file node.
       md5:
         is_a: literal
@@ -1714,7 +2154,7 @@ classes:
         close_mappings:
           - spdx:checksum
         annotations:
-          nih:source_standard: C2M2 md5
+          dapper:source_standard: C2M2 md5
         description: Base64-encoded MD5 checksum of the file.
       sha256:
         is_a: literal
@@ -1722,7 +2162,7 @@ classes:
         close_mappings:
           - spdx:checksum
         annotations:
-          nih:source_standard: dig.geneset input.files[].sha256
+          dapper:source_standard: dig.geneset input.files[].sha256
         description: Hex SHA-256 checksum of the file (from the metadata sidecar).
       size_in_bytes:
         is_a: literal
@@ -1732,13 +2172,14 @@ classes:
         close_mappings:
           - schema:contentSize
         annotations:
-          nih:source_standard: C2M2 size_in_bytes
+          dapper:source_standard: C2M2 size_in_bytes
+        description: Size of the file in bytes.
 
   DataUseTerm:
     is_a: HashableNode
     broad_mappings:
-      - duo:0000001      # data use permission
-      - duo:0000017      # data use modifier
+      - DUO:0000001      # data use permission
+      - DUO:0000017      # data use modifier
     aliases:
       - data use limitation
       - consent code
@@ -1747,9 +2188,7 @@ classes:
       A Data Use Ontology (DUO) term constraining permitted use of the dataset.
       A term is either a data use permission (child of DUO:0000001) or a data
       use modifier (child of DUO:0000017); use `permission` / `modifier`
-      accordingly. Models George's `access.data_use_limitations`.
-    annotations:
-      nih:profile_level: "2.0"
+      accordingly. Models the `access.data_use_limitations` slot.
     attributes:
       duo_id:
         is_a: literal
@@ -1770,14 +2209,14 @@ classes:
         mixins: [hashable]
         range: DataUsePermissionEnum
         broad_mappings:
-          - duo:0000001
+          - DUO:0000001
         description: The primary data use permission, if this term is a permission.
       modifier:
         is_a: literal
         mixins: [hashable]
         range: DataUseModifierEnum
         broad_mappings:
-          - duo:0000017
+          - DUO:0000017
         description: The data use modifier, if this term is a modifier.
 
   RoCratePackage:
@@ -1793,8 +2232,7 @@ classes:
       in schema.org terms rather than a vocabulary of its own, so this class is
       grounded in schema.org/DCAT.
     annotations:
-      nih:profile_level: "2.0"
-      nih:source_standard: RO-Crate 1.1
+      dapper:source_standard: RO-Crate 1.1
     attributes:
       conforms_to:
         is_a: literal
@@ -1835,8 +2273,7 @@ classes:
       carries no BCO class_uri; it is grounded in PROV/schema.org with the
       2791 domain names preserved as attribute names.
     annotations:
-      nih:profile_level: "2.0"
-      nih:source_standard: IEEE 2791-2020 (BioCompute Object)
+      dapper:source_standard: IEEE 2791-2020 (BioCompute Object)
     attributes:
       bco_id:
         is_a: literal
@@ -1844,44 +2281,54 @@ classes:
         range: uriorcurie
         close_mappings:
           - schema:identifier
+        description: Persistent identifier for the BioCompute Object.
       bco_spec_version:
         is_a: literal
         mixins: [hashable]
         close_mappings:
           - dcterms:conformsTo
+        description: IEEE 2791 spec version this object conforms to.
       etag:
         is_a: literal
         mixins: [hashable]
         close_mappings:
           - spdx:checksum
+        description: Checksum/etag over the BCO content.
       provenance_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's provenance domain (contributors, review, dates).
       usability_domain:
         is_a: literal
         mixins: [hashable]
         multivalued: true
+        description: Free-text usability notes describing the workflow's purpose.
       description_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's description domain (pipeline steps, keywords, platform).
       execution_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's execution domain (script, software prerequisites, environment).
       io_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's I/O domain (input and output files).
       parametric_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's parametric domain (runtime parameters).
       error_domain:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
+        description: Reference to the BCO's error domain (empirical/algorithmic error rates).
 
   # ======================================================================
   # EDGE (relationship) classes — reified attribution/provenance statements.
@@ -1895,8 +2342,8 @@ classes:
     is_a: Edge
     description: Dataset → Agent (authoritative creator).
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     slot_usage:
       subject:
         description: Dataset id.
@@ -1916,18 +2363,18 @@ classes:
     is_a: Edge
     description: Dataset → Award (authoritative funding).
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     slot_usage:
       predicate:
-        ifabsent: string(nih:fundedBy)
+        ifabsent: string(dapper:fundedBy)
 
   IsDescribedBy:
     is_a: Edge
     description: Dataset → Publication (authoritative primary publication).
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     slot_usage:
       predicate:
         ifabsent: string(dcterms:isReferencedBy)
@@ -1979,14 +2426,14 @@ classes:
     description: Activity → LineageStep.
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasLineageStep)
+        ifabsent: string(dapper:hasLineageStep)
 
   HasRecommendedCitation:
     is_a: Edge
     description: Dataset → RecommendedCitation (authoritative).
     annotations:
-      nih:authoritative: true
-      nih:mirror_mutable: false
+      dapper:authoritative: true
+      dapper:mirror_mutable: false
     slot_usage:
       predicate:
         ifabsent: string(dcterms:bibliographicCitation)
@@ -1997,50 +2444,42 @@ classes:
       Dataset → MirrorProvenance. APPEND-ONLY: mirrors may add this edge but
       must not modify authoritative statements.
     annotations:
-      nih:mirror_mutable: true
-      nih:append_only: true
+      dapper:mirror_mutable: true
+      dapper:append_only: true
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasMirrorProvenance)
+        ifabsent: string(dapper:hasMirrorProvenance)
 
   HasDataUseTerm:
     is_a: Edge
     description: Dataset → DataUseTerm (DUO).
-    annotations:
-      nih:profile_level: "2.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasDataUseTerm)
+        ifabsent: string(dapper:hasDataUseTerm)
 
   HasDrsObject:
     is_a: Edge
     description: Dataset → DrsObject (GA4GH DRS).
-    annotations:
-      nih:profile_level: "2.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasDrsObject)
+        ifabsent: string(dapper:hasDrsObject)
 
   PackagedAs:
     is_a: Edge
     description: Dataset → RoCratePackage.
-    annotations:
-      nih:profile_level: "2.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:packagedAs)
+        ifabsent: string(dapper:packagedAs)
 
   HasWorkflowProvenance:
     is_a: Edge
     description: Dataset/Activity → BioComputeObject (IEEE 2791).
-    annotations:
-      nih:profile_level: "2.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasWorkflowProvenance)
+        ifabsent: string(dapper:hasWorkflowProvenance)
 
 # ===========================================================================
-# 3.0 BLOCK (A) — DISMECH HARMONIZATION
+# BLOCK — DISMECH HARMONIZATION
 #
 # DISMECH (https://w3id.org/monarch-initiative/dismech) is mirrored into this
 # repo VERBATIM from monarch-initiative/dismech and is refreshed by
@@ -2049,20 +2488,20 @@ classes:
 # expressed on THIS side, as mappings and pointers, so both models can evolve
 # independently and still line up.
 #
-# Cross-walk summary (NIH-DAPP <-> DISMECH):
-#   nih:Dataset             <-> dismech:Dataset            (complementary halves:
+# Cross-walk summary (DAPPER <-> DISMECH):
+#   dapper:Dataset             <-> dismech:Dataset            (complementary halves:
 #                                DISMECH describes the science of a dataset,
-#                                NIH-DAPP describes its attribution)
-#   nih:Publication         <-> dismech:PublicationReference
-#   nih:Activity            <-> dismech:CurationEvent      (DISMECH's homegrown
-#                                mini-PROV; NIH-DAPP's PROV-O subsumes it)
-#   nih:Hypothesis          <-> dismech:MechanisticHypothesis
-#   nih:CausalStep          <-> dismech:CausalEdge
-#   nih:Mechanism           <-> dismech:Mechanism
-#   nih:EvidenceItem        <-> dismech:EvidenceItem
+#                                DAPPER describes its attribution)
+#   dapper:Publication         <-> dismech:PublicationReference
+#   dapper:Activity            <-> dismech:CurationEvent      (DISMECH's homegrown
+#                                mini-PROV; DAPPER's PROV-O subsumes it)
+#   dapper:Hypothesis          <-> dismech:MechanisticHypothesis
+#   dapper:CausalStep          <-> dismech:CausalEdge
+#   dapper:Mechanism           <-> dismech:Mechanism
+#   dapper:EvidenceItem        <-> dismech:EvidenceItem
 #
 # NOTE ON IDENTITY. DISMECH keys a disease by `Disease.name` (a plain string)
-# and a dataset by `accession` (a CURIE). NIH-DAPP keys every Node by a
+# and a dataset by `accession` (a CURIE). DAPPER keys every Node by a
 # CURIE/URI `id`. When pointing at a DISMECH entry, prefer the ontology term
 # (MONDO CURIE) it carries in `disease_term`, and record the upstream string
 # key separately in `dismech_entry_key` so the join is lossless in both
@@ -2072,13 +2511,11 @@ classes:
   DismechLinked:
     mixin: true
     description: >-
-      Mixin adding pointers from a NIH-DAPP node to the DISMECH entry it
+      Mixin adding pointers from a DAPPER node to the DISMECH entry it
       corresponds to. Applied to any class that has a DISMECH counterpart.
       These are POINTERS, not copies — the curated content stays upstream in
       DISMECH and is fetched by following them. This keeps the two models
       harmonized without duplicating (and then drifting from) Monarch's data.
-    annotations:
-      nih:profile_level: "3.0"
     attributes:
       dismech_class:
         is_a: literal
@@ -2088,8 +2525,6 @@ classes:
           CURIE of the DISMECH class this node corresponds to, e.g.
           `dismech:MechanisticHypothesis`. Machine-readable restatement of the
           class-level `exact_mappings`, useful when only an instance is in hand.
-        annotations:
-          nih:profile_level: "3.0"
       dismech_entry_key:
         is_a: literal
         mixins: [hashable]
@@ -2098,8 +2533,6 @@ classes:
           disease, `hypothesis_group_id` for a mechanistic hypothesis. DISMECH
           uses plain strings as identifiers, so this is NOT a CURIE and MUST NOT
           be written into `id`.
-        annotations:
-          nih:profile_level: "3.0"
       dismech_disease_term:
         is_a: relationship
         mixins: [hashable]
@@ -2109,8 +2542,6 @@ classes:
           `Disease.disease_term` -> DiseaseDescriptor -> Term.id). This is the
           stable, resolvable join key between the two models; prefer it over
           `dismech_entry_key`.
-        annotations:
-          nih:profile_level: "3.0"
       dismech_source_url:
         is_a: literal
         mixins: [hashable]
@@ -2118,11 +2549,9 @@ classes:
         description: >-
           Deep link to the entry on https://dismech.monarchinitiative.org, for
           human review.
-        annotations:
-          nih:profile_level: "3.0"
 
 # ===========================================================================
-# 3.0 BLOCK (B) — NANOPUBLICATION (Nanodash / Knowledge Pixels)
+# BLOCK — NANOPUBLICATION (Nanodash / Knowledge Pixels)
 #
 # A nanopublication is FOUR NAMED GRAPHS, not one document:
 #
@@ -2133,16 +2562,16 @@ classes:
 #   <np>/pubinfo      where the NANOPUB came from + sig    (np:PublicationInfo)
 #
 # LinkML has no named-graph construct, so each graph is modelled here as a
-# class and the graph it belongs in is recorded as `nih:np_graph` on that
+# class and the graph it belongs in is recorded as `dapper:np_graph` on that
 # class. A serializer walks these annotations to emit TriG/JSON-LD quads; a
 # loader reverses it. Class/slot URIs below are quoted from the live ontology
 # documents at http://www.nanopub.org/nschema and http://purl.org/nanopub/x/.
 #
-# WHY THIS FITS NIH-DAPP. The nanopub split is almost exactly the NIH-DAPP
+# WHY THIS FITS DAPPER. The nanopub split is almost exactly the DAPPER
 # split, which is why the two compose instead of competing:
 #   assertion   <- the scientific claim        (Hypothesis, block C)
-#   provenance  <- prov:wasAttributedTo, Activity, LineageStep  (NIH-DAPP 1.0)
-#   pubinfo     <- creator / license / created / RecommendedCitation (1.0)
+#   provenance  <- prov:wasAttributedTo, Activity, LineageStep
+#   pubinfo     <- creator / license / created / RecommendedCitation
 # So `ProvenancedResource` already carries most of what the provenance and
 # pubinfo graphs need; the nanopub classes below mostly add IDENTITY (trusty
 # URIs), SIGNATURE, and LIFECYCLE.
@@ -2152,7 +2581,7 @@ classes:
 # https://w3id.org/np/RAwUp0SmZZwQNOY1zbSPhR21aQoImiUyQrDlyXj5QYXmQ). It is
 # therefore CONTENT-ADDRESSED AND IMMUTABLE: you never edit a nanopub, you
 # publish a new one that npx:supersedes it. This is a strictly stronger form
-# of George's mirroring invariant, and worth saying out loud to him — a signed
+# of the mirroring invariant above, and worth calling out explicitly — a signed
 # trusty URI makes "a mirror MUST NOT rewrite authoritative provenance"
 # cryptographically checkable rather than merely stated.
 # ===========================================================================
@@ -2168,9 +2597,8 @@ classes:
       with only an assertion is malformed and the network will reject it. `id` is the
       nanopub's trusty URI once published (a draft may use a temporary URI).
     annotations:
-      nih:profile_level: "3.0"
-      nih:np_graph: Head
-      nih:source_standard: Nanopublication schema (http://www.nanopub.org/nschema)
+      dapper:np_graph: Head
+      dapper:source_standard: Nanopublication schema (http://www.nanopub.org/nschema)
     attributes:
       has_assertion:
         is_a: relationship
@@ -2181,7 +2609,7 @@ classes:
           The assertion graph. REQUIRED: nanopublication well-formedness demands
           exactly one `np:hasAssertion` quad in the Head.
         annotations:
-          nih:np_graph: Head
+          dapper:np_graph: Head
       has_provenance:
         is_a: relationship
         mixins: [hashable]
@@ -2192,7 +2620,7 @@ classes:
           nanopub came from; that is pubinfo). REQUIRED: exactly one, same as
           the assertion. A nanopub carrying only an assertion is malformed.
         annotations:
-          nih:np_graph: Head
+          dapper:np_graph: Head
       has_publication_info:
         is_a: relationship
         mixins: [hashable]
@@ -2202,7 +2630,7 @@ classes:
           The publication-info graph — where the NANOPUB itself came from.
           REQUIRED: exactly one.
         annotations:
-          nih:np_graph: Head
+          dapper:np_graph: Head
       nanopub_type:
         is_a: literal
         mixins: [hashable]
@@ -2210,7 +2638,8 @@ classes:
         multivalued: true
         slot_uri: npx:hasNanopubType
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
+        description: Type(s) classifying this nanopublication (e.g. draft_nanopub).
       has_signature_element:
         is_a: relationship
         mixins: [unhashable]  # signature
@@ -2218,7 +2647,7 @@ classes:
         slot_uri: npx:hasSignatureElement
         description: The NanopubSignature covering this nanopub.
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
       supersedes:
         is_a: relationship
         mixins: [hashable]
@@ -2228,7 +2657,7 @@ classes:
           A previously published nanopub this one replaces. Because trusty URIs
           are immutable, this — not editing — is how a nanopub is updated.
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
       invalidates:
         is_a: relationship
         mixins: [hashable]
@@ -2236,7 +2665,8 @@ classes:
         multivalued: true
         slot_uri: npx:invalidates
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
+        description: Nanopublication(s) this one invalidates without formally superseding them.
       was_created_at:
         is_a: relationship
         mixins: [hashable]
@@ -2246,7 +2676,7 @@ classes:
           The service that minted this nanopub, e.g.
           https://nanodash.knowledgepixels.com/.
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
       created_from_template:
         is_a: relationship
         mixins: [hashable]
@@ -2259,14 +2689,15 @@ classes:
           `ntemplate:wasCreatedFromProvenanceTemplate` and
           `...FromPubinfoTemplate`.
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
       created:
         is_a: literal
         mixins: [unhashable]  # temporal
         range: datetime
         slot_uri: dcterms:created
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
+        description: When the nanopublication was created.
       creator:
         is_a: relationship
         mixins: [hashable]
@@ -2275,20 +2706,22 @@ classes:
         slot_uri: dcterms:creator
         description: ORCID(s) of the nanopub's creator.
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
       nanopub_license:
         is_a: relationship
         mixins: [hashable]
         range: uriorcurie
         slot_uri: dcterms:license
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
+        description: License CURIE/URI the nanopublication is released under.
       label:
         is_a: literal
         mixins: [hashable]
         slot_uri: rdfs:label
         annotations:
-          nih:np_graph: pubinfo
+          dapper:np_graph: pubinfo
+        description: Human-readable label for the nanopublication.
       trusty_uri:
         is_a: literal
         mixins: [unhashable]   # assigned after the content exists
@@ -2303,8 +2736,7 @@ classes:
           `dapper:Nanopublication.{digest}` content address. Two identifiers,
           two different guarantees: keep them separate and never conflate them.
         annotations:
-          nih:profile_level: "3.2"
-          nih:np_graph: Head
+          dapper:np_graph: Head
 
   NanopubAssertion:
     is_a: HashableNode
@@ -2314,8 +2746,7 @@ classes:
       asked to believe. In this profile the assertion is normally a
       `Hypothesis` (block C); `asserts` points at it.
     annotations:
-      nih:profile_level: "3.0"
-      nih:np_graph: assertion
+      dapper:np_graph: assertion
     attributes:
       asserts:
         is_a: relationship
@@ -2341,10 +2772,9 @@ classes:
     description: >-
       The provenance graph — where the ASSERTION came from (not where the
       nanopub came from; that is pubinfo). Its subject is the assertion graph.
-      This is the natural home for a NIH-DAPP `Activity` / `LineageStep` chain.
+      This is the natural home for a DAPPER `Activity` / `LineageStep` chain.
     annotations:
-      nih:profile_level: "3.0"
-      nih:np_graph: provenance
+      dapper:np_graph: provenance
     attributes:
       provenance_of:
         is_a: relationship
@@ -2366,7 +2796,7 @@ classes:
         mixins: [hashable]
         range: uriorcurie
         slot_uri: prov:wasGeneratedBy
-        description: NIH-DAPP Activity id that produced the assertion.
+        description: DAPPER Activity id that produced the assertion.
       derived_from:
         is_a: relationship
         mixins: [hashable]
@@ -2383,10 +2813,9 @@ classes:
     description: >-
       The publication-info graph — metadata about the NANOPUB itself: who
       published it, when, under what licence, with what signature. Overlaps
-      almost exactly with the NIH-DAPP attribution core.
+      almost exactly with the DAPPER attribution core.
     annotations:
-      nih:profile_level: "3.0"
-      nih:np_graph: pubinfo
+      dapper:np_graph: pubinfo
     attributes:
       pubinfo_of:
         is_a: relationship
@@ -2403,9 +2832,8 @@ classes:
       ORCID; verifying the signature plus recomputing the trusty-URI hash
       proves the content has not been altered since publication.
     annotations:
-      nih:profile_level: "3.0"
-      nih:np_graph: pubinfo
-      nih:mirror_mutable: false
+      dapper:np_graph: pubinfo
+      dapper:mirror_mutable: false
     attributes:
       has_algorithm:
         is_a: literal
@@ -2440,8 +2868,6 @@ classes:
   HasAssertion:
     is_a: Edge
     description: Nanopublication → NanopubAssertion.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
         ifabsent: string(np:hasAssertion)
@@ -2449,8 +2875,6 @@ classes:
   HasProvenanceGraph:
     is_a: Edge
     description: Nanopublication → NanopubProvenance.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
         ifabsent: string(np:hasProvenance)
@@ -2458,8 +2882,6 @@ classes:
   HasPublicationInfo:
     is_a: Edge
     description: Nanopublication → NanopubPublicationInfo.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
         ifabsent: string(np:hasPublicationInfo)
@@ -2469,21 +2891,19 @@ classes:
     description: >-
       Nanopublication → Nanopublication. The update mechanism for immutable
       trusty-URI artifacts.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
         ifabsent: string(npx:supersedes)
 
 # ===========================================================================
-# 3.0 BLOCK (C) — HYPOTHESIS (the REVEAL output)
+# BLOCK — HYPOTHESIS (the REVEAL output)
 #
 # REVEAL emits a mechanistic hypothesis relating a GENE to a DISEASE through a
 # MECHANISM. The milestone is "define hypothesis schema", and the requirement
 # is that it be (i) a FAIR digital object with full metadata and provenance,
 # (ii) in a format compatible with dismech.monarchinitiative.org, and
 # (iii) recognizably compatible with the portal-wide provenance/FAIRness work
-# (Jeremy's KPN, Vlado's gene sets).
+# (the KPN and gene-set work elsewhere in this schema).
 #
 # HOW EACH REQUIREMENT IS MET
 #   FAIR digital object   -> Hypothesis is_a Node (globally unique resolvable
@@ -2491,7 +2911,7 @@ classes:
 #                            creators, funding, licence, access level, derived-
 #                            from, and a recommended citation exactly like a
 #                            Dataset. Findable/Accessible/Interoperable/
-#                            Reusable falls out of reusing the 1.0 core rather
+#                            Reusable falls out of reusing the core rather
 #                            than inventing a parallel metadata block.
 #   DISMECH compatibility -> The chain shape is DISMECH's. A Hypothesis maps to
 #                            dismech:MechanisticHypothesis (the grouping object:
@@ -2567,8 +2987,7 @@ classes:
     close_mappings:
       - hycl:Statement
     annotations:
-      nih:profile_level: "3.0"
-      nih:source_standard: DISMECH MechanisticHypothesis
+      dapper:source_standard: DISMECH MechanisticHypothesis
     attributes:
       hypothesis_label:
         is_a: literal
@@ -2593,6 +3012,7 @@ classes:
         range: HypothesisStatusEnum
         close_mappings:
           - dismech:status
+        description: Review status of the hypothesis (e.g. canonical, candidate).
       description:
         is_a: literal
         mixins: [hashable]
@@ -2709,8 +3129,7 @@ classes:
     exact_mappings:
       - dismech:CausalEdge
     annotations:
-      nih:profile_level: "3.0"
-      nih:source_standard: DISMECH CausalEdge
+      dapper:source_standard: DISMECH CausalEdge
     attributes:
       step_index:
         is_a: literal
@@ -2780,8 +3199,6 @@ classes:
       - dismech:Mechanism
     close_mappings:
       - dismech:Pathophysiology
-    annotations:
-      nih:profile_level: "3.0"
     attributes:
       description:
         is_a: literal
@@ -2803,8 +3220,7 @@ classes:
     exact_mappings:
       - dismech:EvidenceItem
     annotations:
-      nih:profile_level: "3.0"
-      nih:source_standard: DISMECH EvidenceItem
+      dapper:source_standard: DISMECH EvidenceItem
     attributes:
       reference:
         is_a: relationship
@@ -2820,6 +3236,7 @@ classes:
         mixins: [hashable]
         exact_mappings:
           - dismech:reference_title
+        description: Title of the referenced publication.
       direction:
         is_a: literal
         mixins: [hashable]
@@ -2854,28 +3271,22 @@ classes:
           itself a published, signed claim rather than a passage from a paper.
           Following it reaches that claim's own provenance graph, and from
           there the analysis and dataset it rests on.
-        annotations:
-          nih:profile_level: "3.0" 
 
   # ---- hypothesis edges ----------------------------------------------------
 
   HasCausalStep:
     is_a: Edge
     description: Hypothesis → CausalStep.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasCausalStep)
+        ifabsent: string(dapper:hasCausalStep)
 
   HasEvidence:
     is_a: Edge
     description: Hypothesis/CausalStep → EvidenceItem.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:hasEvidence)
+        ifabsent: string(dapper:hasEvidence)
 
   AssertedIn:
     is_a: Edge
@@ -2883,8 +3294,6 @@ classes:
       Hypothesis → Nanopublication. The bridge between block (C) and block (B):
       it records that this hypothesis was published as the assertion of a
       signed, content-addressed nanopublication.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
         ifabsent: string(hycl:claims)
@@ -2896,11 +3305,9 @@ classes:
       `Hypothesis.supported_by_nanopub`; traversing it and then that nanopub's
       `np:hasProvenance` is the path from a hypothesis to the datasets its
       support rests on.
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       predicate:
-        ifabsent: string(nih:supportedByNanopub)
+        ifabsent: string(dapper:supportedByNanopub)
 
   HasAgenticWorkspace:
     is_a: Edge
@@ -2908,26 +3315,22 @@ classes:
       Activity → AgenticWorkspace. Reified form of
       `Activity.has_agentic_workspace`: the workspace and prompt from which
       this analysis can be re-run by an agent.
-    annotations:
-      nih:profile_level: "3.1"
     slot_usage:
       subject:
         description: Activity id.
       predicate:
-        ifabsent: string(nih:hasAgenticWorkspace)
+        ifabsent: string(dapper:hasAgenticWorkspace)
       object:
         description: AgenticWorkspace id.
 
   CorrespondsToDismech:
     is_a: Edge
     description: >-
-      Any NIH-DAPP node → the DISMECH entry it corresponds to. The instance-
+      Any DAPPER node → the DISMECH entry it corresponds to. The instance-
       level counterpart of the class-level `exact_mappings` in block (A).
-    annotations:
-      nih:profile_level: "3.0"
     slot_usage:
       subject:
-        description: NIH-DAPP node id.
+        description: DAPPER node id.
       predicate:
         ifabsent: string(skos:closeMatch)
       object:

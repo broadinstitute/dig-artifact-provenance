@@ -13,6 +13,20 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
+20260917 - linter 
+update the python script src/python/lint/lint_provenance.py
+to take in the dapper.yaml as argument in_schema 
+to take in the file to validate as argument in_file_to_validate
+make it report a list of errors if there are any
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+
+20260815 - schema validation
+update the python script src/python/validation/provenance_validator.py
+to take in as argument in_schema the schema to validate against
+and as argument in_file_to_validate the file to validate against the schema
+
+
 20260914 - make sure prov is v0.1.0
 the raw dapper.yaml schema file for version 0.1.0 is at https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml
 make sure all the provenance created is as described in the 0.1.0 version 
