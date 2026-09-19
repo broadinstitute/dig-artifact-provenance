@@ -10,9 +10,11 @@ It combines the behavior of:
 - [`create_bottom_line_dapper.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/individualsteps/create_bottom_line_dapper.py)
 - [`load_bottom_line_to_db.py`](/Users/mduby/Code/DccWorkspace/ArtifactProvenance/src/python/individualsteps/load_bottom_line_to_db.py)
 
-The script builds the computed-id bottom-line graph in memory, creates one DAPPER-oriented provenance document per published open-data endpoint, and loads those documents into the SQLite `prov_artifact` table.
+The script builds the bottom-line graph in memory, creates one DAPPER provenance document per published open-data endpoint, mints DAPPER-ID-1 identifiers, validates each document with the DAPPER linter, and loads those documents into the SQLite `prov_artifact` table.
 
-Each generated document includes a schema-shaped `dapper` section based on the DAPPER 0.1.0 `dapper.yaml` classes and slots. The existing application-oriented sections remain in the document for the Flask UI and graph viewer.
+Each generated document uses the DAPPER 0.1.0 group-keyed document shape expected by the upstream linter. The document root contains DAPPER node and edge groups such as `datasets`, `activities`, `c2m2_files`, `drs_objects`, `used_edges`, `was_generated_by_edges`, and `has_drs_object_edges`.
+
+Application-only envelope fields such as `graph`, `root_location_path`, and flattened `edges` are intentionally omitted from the emitted provenance document because the DAPPER linter runs in closed mode and treats unknown top-level keys as errors.
 
 Writing the individual provenance JSON files is optional.
 
@@ -34,6 +36,10 @@ Optional arguments:
 - `--save-provenance-files`: write individual provenance JSON files. Default: disabled
 - `--out-dir`: output directory for DAPPER provenance JSON files when `--save-provenance-files` is set. Default: `data/bottom-line-provenance`
 - `--out-graph-file`: optional path for writing the intermediate computed-id graph JSON. Default: not written
+- `--dapper-identity`: DAPPER identity script used to mint DAPPER-ID-1 node identifiers. Default: `/Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py`
+- `--dapper-linter`: DAPPER linter script used to validate generated provenance. Default: `/Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py`
+- `--skip-dapper-lint`: skip DAPPER lint validation. Default: disabled
+- `--max-endpoints`: only export the first N sorted open-data endpoints. Default: all endpoints
 
 Example with explicit arguments:
 
@@ -45,6 +51,25 @@ python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
   --save-provenance-files \
   --out-dir data/bottom-line-provenance \
   --out-graph-file data/graph/provenance_graph.json
+```
+
+One-endpoint validation test:
+
+```bash
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+  --max-endpoints 1 \
+  --in-database /tmp/onestep_dapper_one.sqlite \
+  --in-log-file /tmp/onestep_dapper_one.log \
+  --save-provenance-files \
+  --out-dir /tmp/onestep_bottom_line_dapper_one \
+  --out-graph-file /tmp/onestep_graph_one.json
+```
+
+Validate the generated file directly with the upstream DAPPER linter:
+
+```bash
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py \
+  /tmp/onestep_bottom_line_dapper_one/dig-open-bottom-line-analysis-stg_bottom-line_AA_2hrGadjBMI.sumstats.tsv.gz.json
 ```
 
 ## Inputs
@@ -70,7 +95,7 @@ If any expected listing file is missing, the script prints a warning that includ
 
 ## Outputs
 
-The primary output is a refreshed set of SQLite records in the `prov_artifact` table.
+The primary output is a refreshed set of SQLite records in the `prov_artifact` table. Each stored provenance value is the DAPPER linter-facing provenance document, not the earlier application envelope.
 
 Default database:
 
@@ -130,67 +155,56 @@ The log includes:
 
 ## Processing Flow
 
-The script performs five main operations.
+The script performs seven main operations.
 
 1. Build the bottom-line graph from S3 listing snapshots by calling `build_graph()` from `create_bottom_line_graph.py`.
-2. Use the graph generator's DAPPER 0.1.0 computed identifier pass so graph nodes use `dapper:{ClassName}.{digest}` ids.
-3. Select root nodes where `directory_kind == "open_data_endpoint"` and `location_path` starts with `s3://dig-open-bottom-line-analysis-stg/`.
-4. Walk each root node's upstream provenance subgraph through `WasGeneratedBy`, `WasDerivedFrom`, and `Used` edges, then build a DAPPER-style document for that root.
-5. Load the generated documents into SQLite and optionally write each document as an individual JSON file.
+2. Select root nodes where `directory_kind == "open_data_endpoint"` and `location_path` starts with `s3://dig-open-bottom-line-analysis-stg/`.
+3. Optionally limit the selected roots with `--max-endpoints`, primarily for test runs.
+4. Walk each root node's upstream provenance subgraph through `WasGeneratedBy`, `WasDerivedFrom`, and `Used` edges.
+5. Build a DAPPER group-keyed document for that root, including a terminal published `Dataset` linked to its `DrsObject`.
+6. Mint DAPPER-ID-1 computed node identifiers by running the DAPPER identity script.
+7. Validate the generated document by running the DAPPER linter, then load it into SQLite and optionally write it as an individual JSON file.
 
 ## Identifier Behavior
 
-The graph generation step references:
+The generated provenance references the DAPPER 0.1.0 model and identity behavior through the local DAPPER schema repository:
 
-- `https://github.com/broadinstitute/dapper/releases/tag/0.1.0`
+- identity minting: `/Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py`
+- provenance linting: `/Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py`
+- upstream release: `https://github.com/broadinstitute/dapper/releases/tag/0.1.0`
 
-The graph uses the DAPPER-ID-1 computed identifier pattern:
+The final document uses the DAPPER-ID-1 computed identifier pattern:
 
 ```text
 dapper:{ClassName}.{sha512t24u digest}
 ```
 
-The original graph-construction ids, such as `node:*` and `stage:*`, are retained as `original_id` on nodes and edges. Edge `source` and `target` values are rewritten to the computed DAPPER ids.
-
-Each generated provenance document includes:
-
-- `dapper_release`
-- `dapper_id_profile`
-- `annotation_source`
-- `dapper`
-- `root_node_id`
-- `root_location_path`
-- application-oriented arrays for datasets, DRS objects, activities, C2M2 files, and edges
-- the raw root-specific provenance subgraph under `graph`
-
-`annotation_source` is set to the DAPPER 0.1.0 schema reference:
-
-- `https://raw.githubusercontent.com/broadinstitute/dapper/0.1.0/schema/dapper.yaml`
-
-The generated document also keeps `recommendation_reference` for the local bottom-line modeling guidance.
+Temporary graph-construction ids, such as `node:*` and `stage:*`, are used only before minting. The final provenance document stores DAPPER-computed identifiers and edge endpoints rewritten to those identifiers.
 
 ## DAPPER Schema Shape
 
-The `dapper` section is the schema-shaped portion of each generated document.
+The full emitted provenance document is the schema/linter-facing DAPPER document.
 
 It contains:
 
-- `schema_name`: `dapper.yaml`
-- `schema_release`: the DAPPER 0.1.0 release URL
-- `schema_source`: the DAPPER 0.1.0 schema reference
-- `id_profile`: `DAPPER-ID-1`
-- `nodes`: records with a `class` value such as `Dataset`, `DrsObject`, `Activity`, or `C2M2File`
-- `edges`: records with `class`, `id`, `subject`, `predicate`, and `object`
+- `datasets`: DAPPER `Dataset` nodes, including the terminal published open-data result
+- `drs_objects`: DAPPER `DrsObject` nodes for the published artifact bytes
+- `activities`: DAPPER `Activity` nodes for intake and bottom-line pipeline stages
+- `c2m2_files`: DAPPER `C2M2File` nodes for file inputs and intermediate artifacts
+- `used_edges`: DAPPER `Used` relationships from activities to consumed files/datasets
+- `was_generated_by_edges`: DAPPER `WasGeneratedBy` relationships from datasets/files to producing activities
+- `was_derived_from_edges`: DAPPER `WasDerivedFrom` relationships when present in the graph
+- `has_drs_object_edges`: DAPPER `HasDrsObject` relationship from the terminal dataset to the published DRS object
 
-The schema-shaped records use DAPPER slot names such as:
+The records use DAPPER slot names such as:
 
 - `Dataset`: `id`, `name`, `resource_type`, `description`, `access_level`, `was_generated_by`
 - `DrsObject`: `id`, `name`, `drs_id`, `self_uri`, `mime_type`, `access_methods`
 - `Activity`: `id`, `name`, `description`, `activity_type`, `repo_url`
 - `C2M2File`: `id`, `name`, `description`, `filename`, `local_id`
-- `Edge`: `id`, `subject`, `predicate`, `object`, and optional `edge_role`
+- `Edge`: `subject`, `predicate`, `object`, and optional `edge_role`
 
-The application-oriented arrays outside `dapper` intentionally retain extra operational fields such as `phenotype`, `ancestry`, `location_path`, and `graph`. Those fields are useful for this app but are not all DAPPER schema slots.
+Operational fields such as `phenotype`, `ancestry`, `location_path`, and raw `graph` are excluded from the linter-facing provenance document unless they are represented through DAPPER-defined fields.
 
 ## Relationship To Existing Scripts
 
@@ -217,7 +231,7 @@ The script intentionally delegates graph construction and DAPPER section mapping
 Known limitations:
 
 - it does not create or migrate the SQLite schema
-- it does not run a formal LinkML/DAPPER validator
 - it does not compute file checksums, sizes, or object version metadata
 - it only exports provenance for open-data endpoints under `s3://dig-open-bottom-line-analysis-stg/`
 - it overwrites matching output filenames if `--save-provenance-files` is used against an existing output directory
+- running identity minting and linting through `uv run` for every endpoint is correct but can be slow for the full endpoint set

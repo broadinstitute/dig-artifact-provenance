@@ -13,6 +13,17 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
+codex resume 019fa93f-fd47-71f3-ba9a-c8d1e469cd37
+
+20260918 - linter validation
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+make sure all the provenance created is as described in the 0.1.0 version at 
+https://github.com/broadinstitute/dapper/releases/tag/0.1.0 dapper.yaml schema file
+use the following linter command to validate the provenance json being built:
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py <provenance_file_input>
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+
 20260917 - linter 
 update the python script src/python/lint/lint_provenance.py
 to take in the dapper.yaml as argument in_schema 
