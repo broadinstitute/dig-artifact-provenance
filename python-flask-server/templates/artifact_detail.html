@@ -253,7 +253,93 @@
 
     function labelForNode(nodeId, nodeIndex) {
       const node = nodeIndex.get(nodeId) || {};
-      return node.label || node.name || node.stage_name || nodeId;
+      return node.label || node.name || node.stage_name || node.filename || node.drs_id || nodeId;
+    }
+
+    const dapperNodeGroups = {
+      activities: "Activity",
+      c2m2_files: "C2M2File",
+      datasets: "Dataset",
+      drs_objects: "DrsObject",
+      files: "File",
+      gene_sets: "GeneSet",
+      sets: "Set",
+    };
+
+    const dapperEdgeGroups = {
+      used_edges: "Used",
+      was_generated_by_edges: "WasGeneratedBy",
+      was_derived_from_edges: "WasDerivedFrom",
+      has_drs_object_edges: "HasDrsObject",
+      drs_representation_edges: "DrsRepresentation",
+    };
+
+    function normalizeDapperGraph(provenance) {
+      const legacyEdges = Array.isArray(provenance?.edges) ? provenance.edges : [];
+      const legacyNodes = Array.isArray(provenance?.graph?.nodes) ? provenance.graph.nodes : [];
+
+      if (legacyEdges.length > 0 || legacyNodes.length > 0) {
+        return {
+          nodes: legacyNodes,
+          edges: legacyEdges.map((edge, index) => ({
+            id: edge.id || `legacy-edge-${index}`,
+            source: edge.source,
+            target: edge.target,
+            relationship: edge.relationship || edge.class || "",
+            predicate: edge.predicate || "",
+          })),
+        };
+      }
+
+      const nodes = [];
+      const edges = [];
+
+      for (const [group, dapperClass] of Object.entries(dapperNodeGroups)) {
+        for (const node of provenance?.[group] || []) {
+          nodes.push({
+            ...node,
+            dapper_class: node.dapper_class || dapperClass,
+            label: node.label || node.name || node.filename || node.drs_id || node.id,
+            node_group: group,
+          });
+        }
+      }
+
+      for (const [group, relationship] of Object.entries(dapperEdgeGroups)) {
+        for (const [index, edge] of (provenance?.[group] || []).entries()) {
+          edges.push({
+            id: edge.id || `${group}-${index}-${edge.subject || "subject"}-${edge.object || "object"}`,
+            source: edge.subject,
+            target: edge.object,
+            relationship,
+            predicate: edge.predicate || "",
+          });
+        }
+      }
+
+      const drsRepresentationIds = new Set(
+        edges
+          .filter((edge) => edge.relationship === "HasDrsObject" || edge.relationship === "DrsRepresentation")
+          .map((edge) => edge.target)
+      );
+
+      for (const node of nodes) {
+        if (drsRepresentationIds.has(node.id)) {
+          node.directory_kind = "open_data_endpoint";
+        }
+      }
+
+      return {nodes, edges};
+    }
+
+    function visualEdge(edge) {
+      if (edge.relationship === "HasDrsObject" || edge.relationship === "DrsRepresentation") {
+        return {source: edge.source, target: edge.target};
+      }
+
+      // DAPPER provenance edges generally point from products/activities to
+      // provenance dependencies. Display those as input -> activity -> output.
+      return {source: edge.target, target: edge.source};
     }
 
     function buildTopDownGraph(edges, nodeIds) {
@@ -270,10 +356,7 @@
           continue;
         }
 
-        // Stored provenance points from products to provenance dependencies.
-        // Display it as input -> activity -> output so the graph reads top-down.
-        const visualSource = edge.target;
-        const visualTarget = edge.source;
+        const {source: visualSource, target: visualTarget} = visualEdge(edge);
         adjacency.get(visualSource)?.push(visualTarget);
         incomingCount.set(visualTarget, (incomingCount.get(visualTarget) || 0) + 1);
       }
@@ -342,8 +425,9 @@
       label.textContent = "graph";
       shell.appendChild(label);
 
-      const edges = Array.isArray(provenance?.edges) ? provenance.edges : [];
-      const rawNodes = Array.isArray(provenance?.graph?.nodes) ? provenance.graph.nodes : [];
+      const graphData = normalizeDapperGraph(provenance);
+      const edges = graphData.edges;
+      const rawNodes = graphData.nodes;
       const nodeIndex = new Map(rawNodes.map((node) => [node.id, node]));
 
       const graphShell = document.createElement("div");
@@ -412,12 +496,13 @@
         if (!edge.source || !edge.target) {
           continue;
         }
+        const {source, target} = visualEdge(edge);
 
         elements.push({
           data: {
             id: edge.id || `${edge.source}-${edge.target}-${edge.relationship || "edge"}`,
-            source: edge.target,
-            target: edge.source,
+            source,
+            target,
             provenanceSource: edge.source,
             provenanceTarget: edge.target,
           },
