@@ -52,9 +52,10 @@ The emitted documents intentionally do not include application-only envelope
 fields such as ``graph`` or ``root_location_path`` because the DAPPER linter runs
 in closed mode and treats unknown top-level keys as errors.
 
-Before linting, the script mints DAPPER-ID-1 computed node identifiers with:
+Before linting, the script mints DAPPER-ID-1 computed node identifiers by
+batch-importing the DAPPER identity module in one ``uv run`` process:
 
-    uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py assign <provenance_file_input>
+    /Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py
 """
 
 from __future__ import annotations
@@ -393,48 +394,81 @@ def uv_environment() -> dict[str, str]:
     return env
 
 
-def mint_document(filename: str, document: dict, dapper_identity: Path) -> dict:
-    with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_mint_") as temp_dir:
-        temp_file = Path(temp_dir) / filename
-        temp_file.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
-
-        assign_result = subprocess.run(
-            ["uv", "run", str(dapper_identity), "assign", str(temp_file)],
-            capture_output=True,
-            text=True,
-            check=False,
-            env=uv_environment(),
-        )
-        if assign_result.returncode != 0:
-            detail = assign_result.stderr.strip() or assign_result.stdout.strip()
-            raise RuntimeError(f"DAPPER identity assignment failed for {filename}: {detail}")
-
-        convert_code = (
-            "import json,sys,yaml;"
-            "print(json.dumps(yaml.safe_load(open(sys.argv[1], encoding='utf-8')), separators=(',',':')))"
-        )
-        convert_result = subprocess.run(
-            ["uv", "run", "--with", "pyyaml", "python", "-c", convert_code, str(temp_file)],
-            capture_output=True,
-            text=True,
-            check=False,
-            env=uv_environment(),
-        )
-        if convert_result.returncode != 0:
-            detail = convert_result.stderr.strip() or convert_result.stdout.strip()
-            raise RuntimeError(f"Could not read minted DAPPER document for {filename}: {detail}")
-
-        return json.loads(convert_result.stdout)
-
-
 def mint_documents(documents: list[tuple[str, dict]], dapper_identity: Path) -> list[tuple[str, dict]]:
     if not dapper_identity.exists():
         raise FileNotFoundError(f"DAPPER identity script does not exist: {dapper_identity}")
 
-    return [
-        (filename, mint_document(filename, document, dapper_identity))
-        for filename, document in documents
-    ]
+    batch_code = r"""#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml", "rdflib", "linkml-runtime", "ruamel.yaml"]
+# ///
+import json
+import sys
+from pathlib import Path
+
+identity_path = Path(sys.argv[1]).resolve()
+input_dir = Path(sys.argv[2]).resolve()
+output_dir = Path(sys.argv[3]).resolve()
+index_file = Path(sys.argv[4]).resolve()
+
+sys.path.insert(0, str(identity_path.parent))
+from dapper_identity import assign_ids, load_schema  # noqa: E402
+
+schema = load_schema(identity_path.parent.parent / "dapper.yaml")
+filenames = json.loads(index_file.read_text(encoding="utf-8"))
+output_dir.mkdir(parents=True, exist_ok=True)
+
+for filename in filenames:
+    input_file = input_dir / filename
+    output_file = output_dir / filename
+    document = json.loads(input_file.read_text(encoding="utf-8"))
+    assign_ids(document, schema)
+    output_file.write_text(json.dumps(document, separators=(",", ":")) + "\n", encoding="utf-8")
+"""
+
+    with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_mint_") as temp_dir:
+        temp_path = Path(temp_dir)
+        input_dir = temp_path / "input"
+        output_dir = temp_path / "output"
+        input_dir.mkdir()
+        filenames = []
+        for filename, document in documents:
+            filenames.append(filename)
+            (input_dir / filename).write_text(json.dumps(document, separators=(",", ":")) + "\n", encoding="utf-8")
+
+        index_file = temp_path / "index.json"
+        index_file.write_text(json.dumps(filenames), encoding="utf-8")
+        batch_script = temp_path / "batch_mint_dapper.py"
+        batch_script.write_text(batch_code, encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "--managed-python",
+                "--python",
+                "3.11",
+                "--script",
+                str(batch_script),
+                str(dapper_identity),
+                str(input_dir),
+                str(output_dir),
+                str(index_file),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=uv_environment(),
+        )
+        if result.returncode != 0:
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise RuntimeError(f"Batch DAPPER identity assignment failed: {detail}")
+
+        return [
+            (filename, json.loads((output_dir / filename).read_text(encoding="utf-8")))
+            for filename in filenames
+        ]
 
 
 def derive_document_name(document: dict, source_file: Path) -> str:

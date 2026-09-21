@@ -1,5 +1,29 @@
 
 
+
+20260921 - full run 
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3 \
+--in-database python-flask-server/data/provenance_db.sqlite \
+--save-provenance-files \
+--skip-dapper-lint \
+--in-log-file logs/onestep_bottom_line.log \
+--max-endpoints=300 \
+--out-graph-file data/graph/onestep_graph.json
+
+
+20260921 - try new id minting with 300 docs for speed evaluation
+-- worked in under 20s
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3 \
+--in-database python-flask-server/data/provenance_db.sqlite \
+--save-provenance-files \
+--skip-dapper-lint \
+--in-log-file logs/onestep_bottom_line.log \
+--max-endpoints=300 \
+--out-graph-file data/graph/onestep_graph.json
+
+
 20260921 - validation after new json creation 
 uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py data/bottom-line-provenance/dig-open-bottom-line-analysis-stg_bottom-line_AA_ADMother.sumstats.tsv.gz.json
 
