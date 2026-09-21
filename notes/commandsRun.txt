@@ -1,5 +1,40 @@
 
 
+20260921 - validation after new json creation 
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py data/bottom-line-provenance/dig-open-bottom-line-analysis-stg_bottom-line_AA_ADMother.sumstats.tsv.gz.json
+
+20260921 - one step test with 5 files
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3 \
+--in-database python-flask-server/data/provenance_db.sqlite \
+--save-provenance-files \
+--skip-dapper-lint \
+--in-log-file logs/onestep_bottom_line.log \
+--max-endpoints=3 \
+--out-graph-file data/graph/onestep_graph.json
+
+
+20260919 - one step run, no linter, save prov files
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--s3-listing-dir data/s3 \
+--in-database python-flask-server/data/provenance_db.sqlite \
+--save-provenance-files \
+--skip-dapper-lint \
+--in-log-file logs/onestep_bottom_line.log \
+--out-graph-file data/graph/onestep_graph.json
+
+
+20260918 - linter validation
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py data/bottom-line-provenance/dig-open-bottom-line-analysis-stg_bottom-line_AA_AST.sumstats.tsv.gz.json
+
+uv run schema/lint/lint_provenance.py schema/examples/dig-open-bottom-line-analysis-stg_bottom-line_AA_CKD.sumstats.tsv.gz.json
+
+0260916 - verify schema 
+python3 src/python/validation/provenance_validator.py \
+--in-schema notes/schema/provenance/dapper.yaml \
+--in-file-to-validate data/bottom-line-provenance/dig-open-bottom-line-analysis-stg_bottom-line_AA_Cholelithiasis.sumstats.tsv.gz.json 
+
+
 20260910 - one step run 
 python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
 --s3-listing-dir data/s3 \

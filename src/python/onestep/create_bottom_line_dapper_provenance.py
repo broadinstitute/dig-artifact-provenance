@@ -31,6 +31,7 @@ Optional arguments and defaults:
   intermediate computed-id graph JSON to that path.
 - ``--max-endpoints``: not set by default; when provided, only builds the first
   N sorted open-data endpoint documents. Useful for one-endpoint lint tests.
+- ``-skip-dapper-lint`` skips the linter provenance check
 
 This combines:
 
