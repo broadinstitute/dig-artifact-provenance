@@ -491,6 +491,71 @@ def derive_document_name(document: dict, source_file: Path) -> str:
     return f"Bottom-line provenance for {source_file.stem}"
 
 
+def derive_trait_ancestry_from_filename(source_file: Path) -> tuple[str, str]:
+    prefix = "dig-open-bottom-line-analysis-stg_bottom-line_"
+    suffix = ".sumstats.tsv.gz.json"
+    filename = source_file.name
+
+    if not filename.startswith(prefix) or not filename.endswith(suffix):
+        raise ValueError(f"Cannot derive trait and ancestry from provenance filename: {filename}")
+
+    remainder = filename[len(prefix) : -len(suffix)]
+    ancestry_id, separator, trait_legacy_id = remainder.partition("_")
+    if not separator or not ancestry_id or not trait_legacy_id:
+        raise ValueError(f"Cannot derive trait and ancestry from provenance filename: {filename}")
+
+    return trait_legacy_id, ancestry_id
+
+
+def table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
+    return {row[1] for row in connection.execute(f"PRAGMA table_info({table_name})")}
+
+
+def validate_database_schema(connection: sqlite3.Connection) -> None:
+    artifact_columns = table_columns(connection, "prov_artifact")
+    required_artifact_columns = {
+        "id",
+        "pipeline_type",
+        "provenance",
+        "name",
+        "trait_legacy_id",
+        "ancestry_id",
+        "description",
+    }
+    missing_artifact_columns = required_artifact_columns - artifact_columns
+    if missing_artifact_columns:
+        raise RuntimeError(
+            "prov_artifact is missing required column(s): "
+            + ", ".join(sorted(missing_artifact_columns))
+        )
+
+    trait_columns = table_columns(connection, "prov_trait")
+    required_trait_columns = {"legacy_id", "kpn_id", "name", "description"}
+    missing_trait_columns = required_trait_columns - trait_columns
+    if missing_trait_columns:
+        raise RuntimeError(
+            "prov_trait is missing required column(s): "
+            + ", ".join(sorted(missing_trait_columns))
+        )
+
+
+def validate_ancestry_ids(connection: sqlite3.Connection, ancestry_ids: set[str]) -> None:
+    ancestry_columns = table_columns(connection, "prov_ancestry")
+    if "ancestry_id" not in ancestry_columns:
+        raise RuntimeError("prov_ancestry is missing required column: ancestry_id")
+
+    existing_ids = {
+        row[0]
+        for row in connection.execute("SELECT ancestry_id FROM prov_ancestry")
+    }
+    missing_ids = ancestry_ids - existing_ids
+    if missing_ids:
+        raise RuntimeError(
+            "prov_ancestry is missing required ancestry_id value(s): "
+            + ", ".join(sorted(missing_ids))
+        )
+
+
 def lint_document(filename: str, document: dict, dapper_linter: Path) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_lint_") as temp_dir:
         temp_file = Path(temp_dir) / filename
@@ -533,22 +598,40 @@ def load_documents_to_database(documents: list[tuple[str, dict]], database_file:
         raise FileNotFoundError(f"Database file does not exist: {database_file}")
 
     configure_logging(log_file)
-    rows: list[tuple[str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str]] = []
+    traits: dict[str, tuple[str, str, str]] = {}
+    ancestry_ids: set[str] = set()
 
     for filename, document in documents:
         source_file = Path(filename)
         artifact_id = source_file.stem
+        trait_legacy_id, ancestry_id = derive_trait_ancestry_from_filename(source_file)
         provenance = json.dumps(document, separators=(",", ":"))
         name = derive_document_name(document, source_file)
-        rows.append((artifact_id, PIPELINE_TYPE, provenance, name))
+        rows.append((artifact_id, PIPELINE_TYPE, provenance, name, trait_legacy_id, ancestry_id))
+        traits[trait_legacy_id] = (trait_legacy_id, trait_legacy_id, trait_legacy_id)
+        ancestry_ids.add(ancestry_id)
         logging.info("Prepared database record for provenance file %s", filename)
 
     with sqlite3.connect(database_file) as connection:
+        validate_database_schema(connection)
+        validate_ancestry_ids(connection, ancestry_ids)
         connection.execute("DELETE FROM prov_artifact WHERE pipeline_type = ?", (PIPELINE_TYPE,))
         connection.executemany(
             """
-            INSERT INTO prov_artifact (id, pipeline_type, provenance, name, description)
-            VALUES (?, ?, ?, ?, NULL)
+            INSERT INTO prov_trait (legacy_id, kpn_id, name, description)
+            VALUES (?, ?, ?, NULL)
+            ON CONFLICT(legacy_id) DO UPDATE SET
+                kpn_id = excluded.kpn_id,
+                name = excluded.name
+            """,
+            sorted(traits.values()),
+        )
+        connection.executemany(
+            """
+            INSERT INTO prov_artifact
+                (id, pipeline_type, provenance, name, trait_legacy_id, ancestry_id, description)
+            VALUES (?, ?, ?, ?, ?, ?, NULL)
             """,
             rows,
         )

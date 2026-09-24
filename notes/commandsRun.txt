@@ -8,7 +8,6 @@ python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
 --save-provenance-files \
 --skip-dapper-lint \
 --in-log-file logs/onestep_bottom_line.log \
---max-endpoints=300 \
 --out-graph-file data/graph/onestep_graph.json
 
 

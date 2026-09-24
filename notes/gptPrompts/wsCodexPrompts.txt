@@ -7,6 +7,13 @@ TBD
 
 
 
+
+20260921 - fix fhe graph ui for the new graph edges
+the provenance json has changed
+in the web application details page, modify the graph display element to use the new provenance syntax
+let me know if there are any concerns or issues
+
+
 20260910 - pretty up web page
 in the provenance detail graph widget, different node shapes are used 
 for inputs/outputs and processes
