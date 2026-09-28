@@ -621,9 +621,7 @@ def load_documents_to_database(documents: list[tuple[str, dict]], database_file:
             """
             INSERT INTO prov_trait (legacy_id, kpn_id, name, description)
             VALUES (?, ?, ?, NULL)
-            ON CONFLICT(legacy_id) DO UPDATE SET
-                kpn_id = excluded.kpn_id,
-                name = excluded.name
+            ON CONFLICT(legacy_id) DO NOTHING
             """,
             sorted(traits.values()),
         )

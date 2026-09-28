@@ -1,5 +1,10 @@
 
 
+.headers on
+.mode column
+
+
+
 CREATE TABLE prov_artifact (
     id TEXT PRIMARY KEY,
     pipeline_type TEXT NOT NULL,
@@ -31,10 +36,13 @@ CREATE TABLE prov_ancestry (
 );
 
 -- insert ancestry data
-insert into prov_ancestry (ancestry_id, name) values('AA', 'African');
+insert into prov_ancestry (ancestry_id, name) values('AA', 'African American');
+insert into prov_ancestry (ancestry_id, name) values('AF', 'African');
 insert into prov_ancestry (ancestry_id, name) values('EA', 'East Asian');
 insert into prov_ancestry (ancestry_id, name) values('SA', 'South Asian');
 insert into prov_ancestry (ancestry_id, name) values('EU', 'European');
 insert into prov_ancestry (ancestry_id, name) values('HS', 'Hispanic');
+insert into prov_ancestry (ancestry_id, name) values('GME', 'GME');
+insert into prov_ancestry (ancestry_id, name) values('SSAF', 'SSAF');
 insert into prov_ancestry (ancestry_id, name) values('Mixed', 'Mixed');
 

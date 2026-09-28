@@ -1,5 +1,8 @@
 
 
+
+
+
 TBD - update edges/nodes 
 update the sqlite schema file at notes/schema/database/provenance_db.sql 
 write a sql statement to create a sqlite table prov_node

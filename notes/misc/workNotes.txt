@@ -1,0 +1,11 @@
+
+
+
+
+20260923
+- provenance_db.sqlite 1/10 smaller after adding trait/ancestry - unexpected size drop
+  - Conclusion: the latter database is smaller because it was likely rebuilt, vacuumed, or created fresh after deletes, while the earlier DB retained a large SQLite freelist. SQLite does not automatically return freed pages to the filesystem after
+  deletes unless VACUUM, auto-vacuum behavior, or rebuilding occurs. The trait/ancestry tables add very little compared with the removed unused free pages.
+  
+- added trait and ancestry to db 
+  - GME, SSAF new ancestries?

@@ -13,6 +13,28 @@ TBD - always update .md file
   - verify with 1.4 standard 
 
 
+20260923 - add trait/ancestry tables
+in directory /Users/mduby/Data/Broad/ProvenanceArtifact/DbBackup
+using sqlite3 to compare	20260921newDapperLinterProv_db.sqlite and 20260923provTraitAncestry_db.sqlite,
+why did the latter database shrink in size even though I added trait and ancestry tables?
+do not modify anything
+
+
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+when adding rows to the prov_trait table, make sure it skips rows that already have the primary key in 
+
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+when inserting the data in prov_artifact database table, 
+populate the new prov_artifact.trait_legacy_id field with the trait/phenotype code 
+and the new prov_artifact.ancestry_id field with the ancestry code 
+also populate the prov_trait table putting the distinct trait codes in the legacy_id, kpn_id and name fields.
+do not modfiy the provenance file creation; only change the data being put into the database tables.
+use the data/database/provenance_db.sqlite as your test database which has all the new fields
+if there is an issue, do nothing and let me know
+
+
+
+
 20260921 - asking to incorporate the prov generation from dapper repo 
 for minting the documents with dapper, would it help with speed to incorporate the needed dapper library 
 into the current code base, or just batch call the minting external process
