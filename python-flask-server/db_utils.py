@@ -41,6 +41,22 @@ def list_artifacts(database_file: Path, limit: int) -> list[dict[str, str | None
     return [{"id": str(row["id"]), "name": row["name"]} for row in rows]
 
 
+def list_traits(database_file: Path) -> list[dict[str, str | None]]:
+    try:
+        with connect_database(database_file) as connection:
+            rows = connection.execute(
+                """
+                SELECT legacy_id, kpn_id, name, description
+                FROM prov_trait
+                ORDER BY legacy_id ASC
+                """
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list provenance traits: {exc}") from exc
+
+    return [{key: row[key] for key in row.keys()} for row in rows]
+
+
 def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str | None] | None:
     if not artifact_id:
         raise DatabaseError("Artifact id must not be empty.")

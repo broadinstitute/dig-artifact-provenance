@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 
-from db_utils import DatabaseError, get_provenance_by_id, list_artifacts
+from db_utils import DatabaseError, get_provenance_by_id, list_artifacts, list_traits
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -83,6 +83,16 @@ def create_app() -> Flask:
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(artifacts)
+
+    @app.get("/traits")
+    def traits():
+        try:
+            trait_rows = list_traits(app.config["DATABASE_FILE"])
+        except DatabaseError as exc:
+            logging.error("Database error in /traits: %s", exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        return jsonify(trait_rows)
 
     @app.get("/get_provenance")
     def get_provenance():
