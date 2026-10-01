@@ -57,28 +57,42 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
-def list_bottom_line_by_trait(database_file: Path, trait_legacy_id: str) -> list[dict[str, str | None]]:
+def list_bottom_line_by_trait(
+    database_file: Path,
+    trait_legacy_id: str,
+    ancestry_id: str | None = None,
+) -> list[dict[str, str | None]]:
     if not trait_legacy_id:
         raise DatabaseError("Trait legacy id must not be empty.")
+
+    params = ["bottom-line", trait_legacy_id]
+    ancestry_filter = ""
+    if ancestry_id:
+        ancestry_filter = "AND artifact.ancestry_id = ?"
+        params.append(ancestry_id)
 
     try:
         with connect_database(database_file) as connection:
             rows = connection.execute(
-                """
+                f"""
                 SELECT
                     artifact.id,
                     artifact.name,
                     artifact.trait_legacy_id,
                     artifact.ancestry_id,
+                    trait.name AS trait_name,
                     ancestry.name AS ancestry_name
                 FROM prov_artifact AS artifact
+                LEFT JOIN prov_trait AS trait
+                    ON artifact.trait_legacy_id = trait.legacy_id
                 LEFT JOIN prov_ancestry AS ancestry
                     ON artifact.ancestry_id = ancestry.ancestry_id
                 WHERE artifact.pipeline_type = ?
                     AND artifact.trait_legacy_id = ?
+                    {ancestry_filter}
                 ORDER BY ancestry.name ASC, artifact.id ASC
                 """,
-                ("bottom-line", trait_legacy_id),
+                params,
             ).fetchall()
     except sqlite3.Error as exc:
         raise DatabaseError(f"Failed to list bottom-line artifacts for trait {trait_legacy_id}: {exc}") from exc

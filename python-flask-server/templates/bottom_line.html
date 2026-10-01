@@ -117,7 +117,9 @@
     <a class="back-link" href="{{ url_for('home') }}">Back to artifacts</a>
 
     <section class="panel">
-      <h1>Bottom-line Results for {{ trait }}</h1>
+      <h1>
+        Bottom-line Results for {{ trait }}{% if ancestry %} / {{ ancestry }}{% endif %}
+      </h1>
       <p class="muted">{{ artifacts|length }} result{{ '' if artifacts|length == 1 else 's' }} found.</p>
 
       {% if error %}

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from db_utils import (
     DatabaseError,
@@ -66,6 +66,43 @@ def create_app() -> Flask:
     def artifact_detail(artifact_id: str):
         return render_template("artifact_detail.html", artifact_id=artifact_id)
 
+    @app.get("/bottom_line/<input_trait>/<input_ancestry>")
+    def bottom_line_trait_ancestry(input_trait: str, input_ancestry: str):
+        trait = input_trait.strip()
+        ancestry = input_ancestry.strip()
+        if not trait or not ancestry:
+            logging.error("Missing or empty trait/ancestry path parameter in /bottom_line")
+            return render_template(
+                "bottom_line.html",
+                trait=trait or input_trait,
+                ancestry=ancestry or input_ancestry,
+                artifacts=[],
+                error="Trait and ancestry are required.",
+            ), 400
+
+        try:
+            artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait, ancestry)
+        except DatabaseError as exc:
+            logging.error("Database error in /bottom_line/%s/%s: %s", trait, ancestry, exc)
+            return render_template(
+                "bottom_line.html",
+                trait=trait,
+                ancestry=ancestry,
+                artifacts=[],
+                error=str(exc),
+            ), 500
+
+        if len(artifacts) == 1:
+            return redirect(url_for("artifact_detail", artifact_id=artifacts[0]["id"]))
+
+        return render_template(
+            "bottom_line.html",
+            trait=trait,
+            ancestry=ancestry,
+            artifacts=artifacts,
+            error=None,
+        )
+
     @app.get("/bottom_line/<path:input_trait>")
     def bottom_line_trait(input_trait: str):
         trait = input_trait.strip()
@@ -74,6 +111,7 @@ def create_app() -> Flask:
             return render_template(
                 "bottom_line.html",
                 trait=input_trait,
+                ancestry=None,
                 artifacts=[],
                 error="Trait is required.",
             ), 400
@@ -85,6 +123,7 @@ def create_app() -> Flask:
             return render_template(
                 "bottom_line.html",
                 trait=trait,
+                ancestry=None,
                 artifacts=[],
                 error=str(exc),
             ), 500
@@ -92,6 +131,7 @@ def create_app() -> Flask:
         return render_template(
             "bottom_line.html",
             trait=trait,
+            ancestry=None,
             artifacts=artifacts,
             error=None,
         )
@@ -133,14 +173,15 @@ def create_app() -> Flask:
     @app.get("/ws/bottom_line")
     def bottom_line_trait_data():
         trait = request.args.get("trait", "").strip()
+        ancestry = request.args.get("ancestry", "").strip() or None
         if not trait:
             logging.error("Missing or empty trait parameter in /ws/bottom_line")
             return jsonify({"error": "missing_trait", "message": "Query parameter 'trait' is required."}), 400
 
         try:
-            artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait)
+            artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait, ancestry)
         except DatabaseError as exc:
-            logging.error("Database error in /ws/bottom_line for trait %s: %s", trait, exc)
+            logging.error("Database error in /ws/bottom_line for trait %s ancestry %s: %s", trait, ancestry, exc)
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(artifacts)
