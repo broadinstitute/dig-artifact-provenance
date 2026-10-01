@@ -1,5 +1,11 @@
 
 
+20261001 - adding kpn traits from 
+python3 src/python/traits/update_database_traits_from_kpn_file.py \
+--in_database python-flask-server/data/provenance_db.sqlite \
+--in_trait_file data/traits/kpn_trait_registry_v002.tsv 
+
+
 20260923 - un adding traits/ancestry 
 python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
 --s3-listing-dir data/s3 \

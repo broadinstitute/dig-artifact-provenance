@@ -3,7 +3,9 @@
 
 
 
-TBD - update edges/nodes 
+
+
+TBD? - update edges/nodes 
 update the sqlite schema file at notes/schema/database/provenance_db.sql 
 write a sql statement to create a sqlite table prov_node
 with field id which is primary key text,
@@ -11,6 +13,32 @@ field name which is a text non null,
 field dcc_location which is a text non null,
 field drs_id which is a text nullable,
 field description which is a text nullable
+
+
+20261001 - add in new trait codes from https://github.com/broadinstitute/kpn-data-models
+yes, add in a --out_report_log argument that will be a file where the logging will occur; if none provided, do not write out the log
+
+write a script src/python/traits/update_database_traits_from_kpn_file.py
+it'll take in an argument --in_database that will be a sqlite db file 
+and --in_trait file that will be a trait list tab delimited file 
+match the data on the prov_trait.legacy_id with the file legacy_phenotype_id
+update prov_trait.kpn_id with the file portal_id
+update prov_trait.name and prov_trait.description with the file phenotype_name
+if no database row is found, do nothing but log it for end of process report
+if there are 2 database row matches, update only once and log issue for end of process report 
+use data/traits/kpn_trait_registry_v002.tsv as the test trait file 
+use data/database/20260925provTraitAncestry02_db.sqlite as your test db file 
+if any fields are mispelled and can't be found, do nothing and tell me
+let me know if there are any concerns or issues
+
+
+
+CREATE TABLE prov_trait (
+    legacy_id TEXT PRIMARY KEY,
+    kpn_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT
+);
 
 
 20260904 - create drs table

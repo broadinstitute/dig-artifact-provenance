@@ -9,7 +9,15 @@ TBD - concatenate data with Chase trait names
 
 TBD - write tests to run against web page 
 
-TBD - replace home page to be list of traits
+20260930 - replace home page to be list of traits
+modify the flask web service application in python-flask-server
+make the home page a list of the prov_trait.name in the database 
+for each row, have the name be a link to the /bottom_line/<input_trait> web page
+sort the traits by prov_trait.name 
+also add a /ws/bottom_line/trait_list web service endpoint that does the same thing but returns the data in json format
+do not use the web service endpoint for the web page but share the code as possible
+let me know if there are any concerns or issues
+
 
 
 20260930 - add ancestry ansd phenotype to prov detail page
