@@ -60,7 +60,13 @@ def create_app() -> Flask:
 
     @app.get("/")
     def home():
-        return render_template("index.html")
+        try:
+            trait_rows = list_traits(app.config["DATABASE_FILE"])
+        except DatabaseError as exc:
+            logging.error("Database error in home trait list: %s", exc)
+            return render_template("index.html", traits=[], error=str(exc)), 500
+
+        return render_template("index.html", traits=trait_rows, error=None)
 
     @app.get("/artifact/<path:artifact_id>")
     def artifact_detail(artifact_id: str):
@@ -166,6 +172,16 @@ def create_app() -> Flask:
             trait_rows = list_traits(app.config["DATABASE_FILE"])
         except DatabaseError as exc:
             logging.error("Database error in /traits: %s", exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        return jsonify(trait_rows)
+
+    @app.get("/ws/bottom_line/trait_list")
+    def bottom_line_trait_list():
+        try:
+            trait_rows = list_traits(app.config["DATABASE_FILE"])
+        except DatabaseError as exc:
+            logging.error("Database error in /ws/bottom_line/trait_list: %s", exc)
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(trait_rows)

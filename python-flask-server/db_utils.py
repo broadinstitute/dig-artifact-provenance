@@ -48,7 +48,7 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
                 """
                 SELECT legacy_id, kpn_id, name, description
                 FROM prov_trait
-                ORDER BY legacy_id ASC
+                ORDER BY name ASC, legacy_id ASC
                 """
             ).fetchall()
     except sqlite3.Error as exc:

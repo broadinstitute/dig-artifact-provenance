@@ -111,55 +111,30 @@
   <main class="page">
     <section class="banner">
       <h1>Artifact Provenance</h1>
-      <p class="subtitle">Browse provenance artifacts from the SQLite-backed Flask service.</p>
+      <p class="subtitle">Browse bottom-line provenance by trait.</p>
     </section>
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Artifacts</h2>
-        <div class="meta" id="count-label">Loading...</div>
+        <h2>Traits</h2>
+        <div class="meta">{{ traits|length }} trait{{ '' if traits|length == 1 else 's' }}</div>
       </div>
-      <div class="error" id="error-box"></div>
-      <ul id="artifact-list"></ul>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% elif traits %}
+        <ul>
+          {% for trait in traits %}
+            <li>
+              <a class="artifact-link" href="{{ url_for('bottom_line_trait', input_trait=trait.legacy_id) }}">
+                {{ trait.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="meta">No traits are available.</div>
+      {% endif %}
     </section>
   </main>
-
-  <script>
-    const listUrl = new URL("list", window.location.href).toString();
-    const artifactBaseUrl = new URL("artifact/", window.location.href).toString();
-
-    async function loadArtifactList() {
-      const listEl = document.getElementById("artifact-list");
-      const countLabel = document.getElementById("count-label");
-      const errorBox = document.getElementById("error-box");
-
-      try {
-        const response = await fetch(listUrl);
-        if (!response.ok) {
-          throw new Error("Failed to load artifacts.");
-        }
-
-        const artifacts = await response.json();
-        countLabel.textContent = `${artifacts.length} artifacts`;
-        listEl.innerHTML = "";
-
-        for (const artifact of artifacts) {
-          const item = document.createElement("li");
-          const link = document.createElement("a");
-          link.className = "artifact-link";
-          link.href = artifactBaseUrl + encodeURIComponent(artifact.id);
-          link.textContent = artifact.name || artifact.id;
-          item.appendChild(link);
-          listEl.appendChild(item);
-        }
-      } catch (error) {
-        countLabel.textContent = "Unavailable";
-        errorBox.style.display = "block";
-        errorBox.textContent = error.message;
-      }
-    }
-
-    loadArtifactList();
-  </script>
 </body>
 </html>
