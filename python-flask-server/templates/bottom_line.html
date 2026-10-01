@@ -114,7 +114,7 @@
 </head>
 <body>
   <main class="page">
-    <a class="back-link" href="{{ url_for('home') }}">Back to artifacts</a>
+    <a class="back-link" href="#" data-app-route="">Back to artifacts</a>
 
     <section class="panel">
       <h1>
@@ -138,7 +138,7 @@
               {% for artifact in artifacts %}
                 <tr>
                   <td>
-                    <a href="{{ url_for('artifact_detail', artifact_id=artifact.id) }}">{{ artifact.id }}</a>
+                    <a href="#" data-app-route="artifact/{{ artifact.id|urlencode }}">{{ artifact.id }}</a>
                   </td>
                   <td>{{ artifact.name }}</td>
                   <td>{{ artifact.ancestry_name or artifact.ancestry_id }}</td>
@@ -152,5 +152,31 @@
       {% endif %}
     </section>
   </main>
+  <script>
+    function appRootPath() {
+      const routeMarkers = new Set(["artifact", "bottom_line", "ws", "get_provenance", "list", "traits", "drs"]);
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const markerIndex = parts.findIndex((part) => routeMarkers.has(part));
+
+      if (markerIndex >= 0) {
+        const prefix = parts.slice(0, markerIndex).join("/");
+        return prefix ? `/${prefix}/` : "/";
+      }
+
+      if (window.location.pathname === "/" || window.location.pathname.endsWith("/")) {
+        return window.location.pathname;
+      }
+
+      return `${window.location.pathname}/`;
+    }
+
+    function appUrl(route) {
+      return new URL(route.replace(/^\/+/, ""), `${window.location.origin}${appRootPath()}`).toString();
+    }
+
+    for (const link of document.querySelectorAll("[data-app-route]")) {
+      link.href = appUrl(link.dataset.appRoute || "");
+    }
+  </script>
 </body>
 </html>

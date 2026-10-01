@@ -125,7 +125,7 @@
         <ul>
           {% for trait in traits %}
             <li>
-              <a class="artifact-link" href="{{ url_for('bottom_line_trait', input_trait=trait.legacy_id) }}">
+              <a class="artifact-link" href="#" data-app-route="bottom_line/{{ trait.legacy_id|urlencode }}">
                 {{ trait.name }}
               </a>
             </li>
@@ -136,5 +136,31 @@
       {% endif %}
     </section>
   </main>
+  <script>
+    function appRootPath() {
+      const routeMarkers = new Set(["artifact", "bottom_line", "ws", "get_provenance", "list", "traits", "drs"]);
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const markerIndex = parts.findIndex((part) => routeMarkers.has(part));
+
+      if (markerIndex >= 0) {
+        const prefix = parts.slice(0, markerIndex).join("/");
+        return prefix ? `/${prefix}/` : "/";
+      }
+
+      if (window.location.pathname === "/" || window.location.pathname.endsWith("/")) {
+        return window.location.pathname;
+      }
+
+      return `${window.location.pathname}/`;
+    }
+
+    function appUrl(route) {
+      return new URL(route.replace(/^\/+/, ""), `${window.location.origin}${appRootPath()}`).toString();
+    }
+
+    for (const link of document.querySelectorAll("[data-app-route]")) {
+      link.href = appUrl(link.dataset.appRoute || "");
+    }
+  </script>
 </body>
 </html>

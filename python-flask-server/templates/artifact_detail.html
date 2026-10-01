@@ -206,7 +206,7 @@
 </head>
 <body>
   <main class="page">
-    <a class="back-link" href="../">&larr; Back to Artifact Provenance</a>
+    <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
 
     <section class="panel">
       <h1 id="title">{{ artifact_id }}</h1>
@@ -218,7 +218,32 @@
 
   <script>
     const artifactId = {{ artifact_id|tojson }};
-    const getProvenanceUrl = new URL("../get_provenance", window.location.href).toString();
+    function appRootPath() {
+      const routeMarkers = new Set(["artifact", "bottom_line", "ws", "get_provenance", "list", "traits", "drs"]);
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const markerIndex = parts.findIndex((part) => routeMarkers.has(part));
+
+      if (markerIndex >= 0) {
+        const prefix = parts.slice(0, markerIndex).join("/");
+        return prefix ? `/${prefix}/` : "/";
+      }
+
+      if (window.location.pathname === "/" || window.location.pathname.endsWith("/")) {
+        return window.location.pathname;
+      }
+
+      return `${window.location.pathname}/`;
+    }
+
+    function appUrl(route) {
+      return new URL(route.replace(/^\/+/, ""), `${window.location.origin}${appRootPath()}`).toString();
+    }
+
+    for (const link of document.querySelectorAll("[data-app-route]")) {
+      link.href = appUrl(link.dataset.appRoute || "");
+    }
+
+    const getProvenanceUrl = appUrl("get_provenance");
 
     function formatValue(value) {
       if (value === null) {

@@ -7,8 +7,9 @@ import logging
 import os
 from pathlib import Path
 from datetime import datetime, timezone
+from urllib.parse import quote
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request
 
 from db_utils import (
     DatabaseError,
@@ -99,7 +100,7 @@ def create_app() -> Flask:
             ), 500
 
         if len(artifacts) == 1:
-            return redirect(url_for("artifact_detail", artifact_id=artifacts[0]["id"]))
+            return redirect(f"../../artifact/{quote(artifacts[0]['id'], safe='')}")
 
         return render_template(
             "bottom_line.html",
