@@ -602,11 +602,20 @@
 
       appendField(container, "id", payload.id);
       appendField(container, "pipeline_type", payload.pipeline_type);
+      appendField(container, "trait_name", payload.trait_name || payload.trait_legacy_id || "");
+      appendField(container, "ancestry_name", payload.ancestry_name || payload.ancestry_id || "");
       container.appendChild(buildGraphElements(payload.provenance));
       appendField(container, "provenance", payload.provenance);
 
       for (const [key, value] of Object.entries(payload)) {
-        if (["id", "name", "pipeline_type", "provenance"].includes(key)) {
+        if ([
+          "id",
+          "name",
+          "pipeline_type",
+          "trait_name",
+          "ancestry_name",
+          "provenance",
+        ].includes(key)) {
           continue;
         }
 

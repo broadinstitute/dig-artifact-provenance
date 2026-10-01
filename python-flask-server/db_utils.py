@@ -108,9 +108,22 @@ def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str
         with connect_database(database_file) as connection:
             row = connection.execute(
                 """
-                SELECT id, pipeline_type, provenance, name, description
-                FROM prov_artifact
-                WHERE id = ?
+                SELECT
+                    artifact.id,
+                    artifact.pipeline_type,
+                    artifact.provenance,
+                    artifact.name,
+                    artifact.trait_legacy_id,
+                    artifact.ancestry_id,
+                    trait.name AS trait_name,
+                    ancestry.name AS ancestry_name,
+                    artifact.description
+                FROM prov_artifact AS artifact
+                LEFT JOIN prov_trait AS trait
+                    ON artifact.trait_legacy_id = trait.legacy_id
+                LEFT JOIN prov_ancestry AS ancestry
+                    ON artifact.ancestry_id = ancestry.ancestry_id
+                WHERE artifact.id = ?
                 """,
                 (artifact_id,),
             ).fetchone()

@@ -5,6 +5,53 @@ TBD
 - add port startup log 
 
 
+TBD - concatenate data with Chase trait names
+
+TBD - write tests to run against web page 
+
+TBD - replace home page to be list of traits
+
+
+20260930 - add ancestry ansd phenotype to prov detail page
+in the flask web service application in python-flask-server
+modify all the provenance detail pages 
+add in the matching matching prov_trait.name element and prov_ancestry.name element
+below the pipeline_type element
+let me know if there are any concerns or issues
+
+
+20260930 - add trait/ancestry calls
+I made a mistake; i meant 
+a /ws/bottom_line?trait=<input_trait>&ancestry=<input_ancestry> web service endpoint 
+let me know if there are any concerns or issues
+
+modify the flask web service application in python-flask-server
+add a /bottom_line/<input_trait>/<input_ancestry> web page that takes in the input trait and ancestry
+and returns all the prov_artifact rows with matching trait_legacy_id and ancestry_id
+if there is only one result, use the provenance detail page as a result
+if there are more than one result, use a list page similar to the trait page result
+also add a /ws/bottom_line?trait=<input_trait>/ancestry=<input_ancestry> web service endpoint 
+that returns the list of provenance rows in json format adding in the matching prov_trait.name and prov_ancestry.name
+do not use the web service endpoint for the web page but share the code as possible
+let me know if there are any concerns or issues
+
+
+
+20260929 - add trait link to ancestry files, links to files 
+modify the flask web service application in python-flask-server
+add a /bottom_line/<input_trait> web page that takes in the input trait 
+and returns all the prov_artifact rows with matching trait_legacy_id 
+in table format listing the prov_artifact.id, the prov_artifact.name and prov_ancestry.name joined
+also add a /ws/bottom_line?trait=<input_trait> web service endpoint that does the same thing but returns the data in json format
+do not use the web service endpoint for the web page but share the code as possible
+let me know if there are any concerns or issues
+
+20260928 - add trait list page 
+modify the flask web service application in python-flask-server
+add a /traits endpoint that lists the traits in the prov_trait database table 
+put the database access logic in the python-flask-server/db_utils.py script 
+also architext the data call so that a web service or a page of the html application can access the data 
+let me know if there are any concerns or issues
 
 
 
