@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bottom-line Results</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe5;
+      --panel: #fffdf7;
+      --ink: #1c1a16;
+      --muted: #6b6255;
+      --accent: #0e6b63;
+      --border: #d7cfbf;
+      --head: #ebe1cd;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: linear-gradient(180deg, #ede5d4 0%, var(--bg) 42%, #f7f4ec 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .panel {
+      background: rgba(255, 253, 247, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.05;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: var(--muted);
+      margin: 0 0 18px;
+    }
+
+    .error {
+      color: #a12626;
+      margin: 16px 0 0;
+    }
+
+    .empty {
+      color: var(--muted);
+      margin-top: 18px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #ece3d2;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--head);
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back-link" href="{{ url_for('home') }}">Back to artifacts</a>
+
+    <section class="panel">
+      <h1>Bottom-line Results for {{ trait }}</h1>
+      <p class="muted">{{ artifacts|length }} result{{ '' if artifacts|length == 1 else 's' }} found.</p>
+
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% elif artifacts %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Artifact ID</th>
+                <th>Name</th>
+                <th>Ancestry</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for artifact in artifacts %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('artifact_detail', artifact_id=artifact.id) }}">{{ artifact.id }}</a>
+                  </td>
+                  <td>{{ artifact.name }}</td>
+                  <td>{{ artifact.ancestry_name or artifact.ancestry_id }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty">No bottom-line artifacts were found for this trait.</div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

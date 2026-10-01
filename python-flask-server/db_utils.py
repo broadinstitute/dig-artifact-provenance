@@ -57,6 +57,35 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
+def list_bottom_line_by_trait(database_file: Path, trait_legacy_id: str) -> list[dict[str, str | None]]:
+    if not trait_legacy_id:
+        raise DatabaseError("Trait legacy id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    artifact.id,
+                    artifact.name,
+                    artifact.trait_legacy_id,
+                    artifact.ancestry_id,
+                    ancestry.name AS ancestry_name
+                FROM prov_artifact AS artifact
+                LEFT JOIN prov_ancestry AS ancestry
+                    ON artifact.ancestry_id = ancestry.ancestry_id
+                WHERE artifact.pipeline_type = ?
+                    AND artifact.trait_legacy_id = ?
+                ORDER BY ancestry.name ASC, artifact.id ASC
+                """,
+                ("bottom-line", trait_legacy_id),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list bottom-line artifacts for trait {trait_legacy_id}: {exc}") from exc
+
+    return [{key: row[key] for key in row.keys()} for row in rows]
+
+
 def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str | None] | None:
     if not artifact_id:
         raise DatabaseError("Artifact id must not be empty.")

@@ -10,7 +10,13 @@ from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template, request
 
-from db_utils import DatabaseError, get_provenance_by_id, list_artifacts, list_traits
+from db_utils import (
+    DatabaseError,
+    get_provenance_by_id,
+    list_artifacts,
+    list_bottom_line_by_trait,
+    list_traits,
+)
 
 
 APP_ROOT = Path(__file__).resolve().parent
@@ -60,6 +66,36 @@ def create_app() -> Flask:
     def artifact_detail(artifact_id: str):
         return render_template("artifact_detail.html", artifact_id=artifact_id)
 
+    @app.get("/bottom_line/<path:input_trait>")
+    def bottom_line_trait(input_trait: str):
+        trait = input_trait.strip()
+        if not trait:
+            logging.error("Missing or empty trait path parameter in /bottom_line")
+            return render_template(
+                "bottom_line.html",
+                trait=input_trait,
+                artifacts=[],
+                error="Trait is required.",
+            ), 400
+
+        try:
+            artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait)
+        except DatabaseError as exc:
+            logging.error("Database error in /bottom_line/%s: %s", trait, exc)
+            return render_template(
+                "bottom_line.html",
+                trait=trait,
+                artifacts=[],
+                error=str(exc),
+            ), 500
+
+        return render_template(
+            "bottom_line.html",
+            trait=trait,
+            artifacts=artifacts,
+            error=None,
+        )
+
     @app.errorhandler(Exception)
     def handle_exception(exc: Exception):
         logging.exception("Unhandled REST error: %s", exc)
@@ -93,6 +129,21 @@ def create_app() -> Flask:
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(trait_rows)
+
+    @app.get("/ws/bottom_line")
+    def bottom_line_trait_data():
+        trait = request.args.get("trait", "").strip()
+        if not trait:
+            logging.error("Missing or empty trait parameter in /ws/bottom_line")
+            return jsonify({"error": "missing_trait", "message": "Query parameter 'trait' is required."}), 400
+
+        try:
+            artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait)
+        except DatabaseError as exc:
+            logging.error("Database error in /ws/bottom_line for trait %s: %s", trait, exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        return jsonify(artifacts)
 
     @app.get("/get_provenance")
     def get_provenance():
