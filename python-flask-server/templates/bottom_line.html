@@ -118,7 +118,7 @@
 
     <section class="panel">
       <h1>
-        Bottom-line Results for {{ trait }}{% if ancestry %} / {{ ancestry }}{% endif %}
+        Bottom-line Results for {{ trait_name or trait }}{% if ancestry %} / {{ ancestry }}{% endif %}
       </h1>
       <p class="muted">{{ artifacts|length }} result{{ '' if artifacts|length == 1 else 's' }} found.</p>
 
@@ -129,7 +129,6 @@
           <table>
             <thead>
               <tr>
-                <th>Artifact ID</th>
                 <th>Name</th>
                 <th>Ancestry</th>
               </tr>
@@ -138,9 +137,8 @@
               {% for artifact in artifacts %}
                 <tr>
                   <td>
-                    <a href="#" data-app-route="artifact/{{ artifact.id|urlencode }}">{{ artifact.id }}</a>
+                    <a href="#" data-app-route="artifact/{{ artifact.id|urlencode }}">{{ artifact.name }}</a>
                   </td>
-                  <td>{{ artifact.name }}</td>
                   <td>{{ artifact.ancestry_name or artifact.ancestry_id }}</td>
                 </tr>
               {% endfor %}

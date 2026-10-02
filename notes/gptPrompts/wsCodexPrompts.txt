@@ -5,9 +5,37 @@ TBD
 - add port startup log 
 
 
-TBD - concatenate data with Chase trait names
+TBD - dk slack 
+the bottom-line trait/ancestry provenance pages have been deployed to: https://translator.broadinstitute.org/artifact_provenance
+note that the dapper 0.2.0 has not been implemented yet; the provenance is version 0.1.0 
+example url for trait: https://translator.broadinstitute.org/artifact_provenance/bottom_line/T2D
+example url for trait/ancestry: https://translator.broadinstitute.org/artifact_provenance/bottom_line/T2D/EA
+the system uses the legacy trait code, which I assume is what the portal uses to link out; this can be changed easily
+ditto for the ancestry codes 
+all the codes come from the s3 bucket which I assume matches the bioindex codes
+
+
+TBD - verify missing trait codes 
 
 TBD - write tests to run against web page 
+
+TBD - make sure details page doesn't use WS 
+
+20261001 - cleanup 
+modify the flask web service application in python-flask-server
+on the trait page that lists provenance links, remove the artifact id from the lisiting 
+using the name field as the href
+also for the title of the page, put the name of the trait from the prov_trait.name instead of the id
+let me know if there are any concerns or issues
+
+
+20261001 - error with nginx 
+when I deploy the app behind an nginx server with the resulting home page url https://translator.broadinstitute.org/artifact_provenance
+the trait links end up being https://translator.broadinstitute.org/bottom_line/ADFather and giving me a 502 gateway error 
+fix this issue in a way that it does not depend what the localhost or nginx address is
+make sure all linked pages do not have this issue 
+let me know if there are any concerns or issues
+
 
 20260930 - replace home page to be list of traits
 modify the flask web service application in python-flask-server

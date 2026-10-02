@@ -57,6 +57,29 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
+def get_trait_by_legacy_id(database_file: Path, legacy_id: str) -> dict[str, str | None] | None:
+    if not legacy_id:
+        raise DatabaseError("Trait legacy id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            row = connection.execute(
+                """
+                SELECT legacy_id, kpn_id, name, description
+                FROM prov_trait
+                WHERE legacy_id = ?
+                """,
+                (legacy_id,),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to fetch provenance trait {legacy_id}: {exc}") from exc
+
+    if row is None:
+        return None
+
+    return {key: row[key] for key in row.keys()}
+
+
 def list_bottom_line_by_trait(
     database_file: Path,
     trait_legacy_id: str,

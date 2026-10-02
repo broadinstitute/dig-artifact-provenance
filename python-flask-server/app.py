@@ -14,6 +14,7 @@ from flask import Flask, jsonify, redirect, render_template, request
 from db_utils import (
     DatabaseError,
     get_provenance_by_id,
+    get_trait_by_legacy_id,
     list_artifacts,
     list_bottom_line_by_trait,
     list_traits,
@@ -82,18 +83,21 @@ def create_app() -> Flask:
             return render_template(
                 "bottom_line.html",
                 trait=trait or input_trait,
+                trait_name=trait or input_trait,
                 ancestry=ancestry or input_ancestry,
                 artifacts=[],
                 error="Trait and ancestry are required.",
             ), 400
 
         try:
+            trait_row = get_trait_by_legacy_id(app.config["DATABASE_FILE"], trait)
             artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait, ancestry)
         except DatabaseError as exc:
             logging.error("Database error in /bottom_line/%s/%s: %s", trait, ancestry, exc)
             return render_template(
                 "bottom_line.html",
                 trait=trait,
+                trait_name=trait,
                 ancestry=ancestry,
                 artifacts=[],
                 error=str(exc),
@@ -105,6 +109,7 @@ def create_app() -> Flask:
         return render_template(
             "bottom_line.html",
             trait=trait,
+            trait_name=(trait_row or {}).get("name") or trait,
             ancestry=ancestry,
             artifacts=artifacts,
             error=None,
@@ -118,18 +123,21 @@ def create_app() -> Flask:
             return render_template(
                 "bottom_line.html",
                 trait=input_trait,
+                trait_name=input_trait,
                 ancestry=None,
                 artifacts=[],
                 error="Trait is required.",
             ), 400
 
         try:
+            trait_row = get_trait_by_legacy_id(app.config["DATABASE_FILE"], trait)
             artifacts = list_bottom_line_by_trait(app.config["DATABASE_FILE"], trait)
         except DatabaseError as exc:
             logging.error("Database error in /bottom_line/%s: %s", trait, exc)
             return render_template(
                 "bottom_line.html",
                 trait=trait,
+                trait_name=trait,
                 ancestry=None,
                 artifacts=[],
                 error=str(exc),
@@ -138,6 +146,7 @@ def create_app() -> Flask:
         return render_template(
             "bottom_line.html",
             trait=trait,
+            trait_name=(trait_row or {}).get("name") or trait,
             ancestry=None,
             artifacts=artifacts,
             error=None,
