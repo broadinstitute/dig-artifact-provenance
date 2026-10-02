@@ -15,6 +15,25 @@ field drs_id which is a text nullable,
 field description which is a text nullable
 
 
+TBD - missing traits from guthub slack 
+Just verifying that I'm using the right file 
+https://github.com/broadinstitute/kpn-data-models/blob/main/versions/trait/v0.0.2/kpn_trait_registry.tsv 
+to link legacy trait IDs to the new DCC ontology and description
+I see about 296 missing legacy_phenotype_id values in the file that are in the bioindex/bottom-line but not in the registry file
+I eyeballed the list of missing
+here is a sample list (APTT, CWP, Cellulitis)
+
+
+
+20261001 - count missing legacy codes 
+update the script src/python/traits/update_database_traits_from_kpn_file.py
+add in an argument --count_missing_kpn_traits 
+that will add to the end of the log the count of missing traits
+that are in the database but not in the trait file and list them 
+let me know if there are any concerns or issues
+
+
+
 20261001 - add in new trait codes from https://github.com/broadinstitute/kpn-data-models
 yes, add in a --out_report_log argument that will be a file where the logging will occur; if none provided, do not write out the log
 

@@ -6,7 +6,8 @@ Run from the repository root:
     python3 src/python/traits/update_database_traits_from_kpn_file.py \
       --in_database data/database/20260925provTraitAncestry02_db.sqlite \
       --in_trait_file data/traits/kpn_trait_registry_v002.tsv \
-      --out_report_log logs/kpn_trait_update_report.log
+      --out_report_log logs/kpn_trait_update_report.log \
+      --count_missing_kpn_traits
 
 Required arguments:
 
@@ -17,6 +18,8 @@ Optional arguments:
 
 - ``--out_report_log``: report file for missing and duplicate match details.
   If omitted, no detailed report file is written.
+- ``--count_missing_kpn_traits``: append the count and list of database
+  traits missing from the KPN trait file to the report.
 """
 
 from __future__ import annotations
@@ -47,6 +50,14 @@ def parse_args() -> argparse.Namespace:
         "--out_report_log",
         default=None,
         help="Optional file for detailed missing/duplicate match report. Default: no report file.",
+    )
+    parser.add_argument(
+        "--count_missing_kpn_traits",
+        action="store_true",
+        help=(
+            "Append the count and list of prov_trait.legacy_id values that are present "
+            "in the database but missing from the KPN trait file."
+        ),
     )
     return parser.parse_args()
 
@@ -82,6 +93,7 @@ def write_report(
     report_file: Path,
     missing_legacy_ids: list[str],
     duplicate_legacy_ids: list[str],
+    missing_kpn_trait_ids: list[str] | None = None,
 ) -> None:
     report_file.parent.mkdir(parents=True, exist_ok=True)
     with report_file.open("w", encoding="utf-8") as handle:
@@ -97,8 +109,22 @@ def write_report(
         for legacy_id in sorted(set(duplicate_legacy_ids)):
             handle.write(f"- {legacy_id}\n")
 
+        if missing_kpn_trait_ids is not None:
+            handle.write("\n")
+            handle.write(
+                "Database prov_trait.legacy_id values missing from KPN trait file: "
+                f"{len(missing_kpn_trait_ids)}\n"
+            )
+            for legacy_id in sorted(set(missing_kpn_trait_ids)):
+                handle.write(f"- {legacy_id}\n")
 
-def update_traits(database_file: Path, trait_file: Path, report_file: Path | None = None) -> int:
+
+def update_traits(
+    database_file: Path,
+    trait_file: Path,
+    report_file: Path | None = None,
+    count_missing_kpn_traits: bool = False,
+) -> int:
     if not database_file.exists():
         print(f"ERROR: Database file does not exist: {database_file}")
         return 2
@@ -124,7 +150,28 @@ def update_traits(database_file: Path, trait_file: Path, report_file: Path | Non
         missing_legacy_ids: list[str] = []
         duplicate_legacy_ids: list[str] = []
         updated_legacy_ids: list[str] = []
+        missing_kpn_trait_ids: list[str] | None = None
         skipped_blank_ids = 0
+        trait_file_legacy_ids = {
+            (row.get("legacy_phenotype_id") or "").strip()
+            for row in rows
+            if (row.get("legacy_phenotype_id") or "").strip()
+        }
+
+        if count_missing_kpn_traits:
+            db_legacy_ids = [
+                row[0]
+                for row in connection.execute(
+                    """
+                    SELECT legacy_id
+                    FROM prov_trait
+                    WHERE legacy_id IS NOT NULL AND TRIM(legacy_id) != ''
+                    """
+                ).fetchall()
+            ]
+            missing_kpn_trait_ids = sorted(
+                legacy_id for legacy_id in db_legacy_ids if legacy_id not in trait_file_legacy_ids
+            )
 
         with connection:
             for row in rows:
@@ -166,9 +213,11 @@ def update_traits(database_file: Path, trait_file: Path, report_file: Path | Non
     print(f"Rows skipped with blank legacy_phenotype_id: {skipped_blank_ids}")
     print(f"Trait file rows with no matching prov_trait.legacy_id: {len(missing_legacy_ids)}")
     print(f"Trait file rows with duplicate database matches: {len(duplicate_legacy_ids)}")
+    if missing_kpn_trait_ids is not None:
+        print(f"Database traits missing from KPN trait file: {len(missing_kpn_trait_ids)}")
 
     if report_file is not None:
-        write_report(report_file, missing_legacy_ids, duplicate_legacy_ids)
+        write_report(report_file, missing_legacy_ids, duplicate_legacy_ids, missing_kpn_trait_ids)
         print(f"Detailed report written to: {report_file}")
 
     return 0
@@ -179,7 +228,7 @@ def main() -> int:
     database_file = Path(args.in_database).expanduser().resolve()
     trait_file = Path(args.in_trait_file).expanduser().resolve()
     report_file = Path(args.out_report_log).expanduser().resolve() if args.out_report_log else None
-    return update_traits(database_file, trait_file, report_file)
+    return update_traits(database_file, trait_file, report_file, args.count_missing_kpn_traits)
 
 
 if __name__ == "__main__":

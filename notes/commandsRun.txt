@@ -1,5 +1,13 @@
 
 
+20261002 - count traits missing
+python3 src/python/traits/update_database_traits_from_kpn_file.py \
+--in_database python-flask-server/data/provenance_db.sqlite \
+--in_trait_file data/traits/kpn_trait_registry_v002.tsv \
+--out_report_log trait.log \
+--count_missing_kpn_traits 
+
+
 20261001 - adding kpn traits from 
 python3 src/python/traits/update_database_traits_from_kpn_file.py \
 --in_database python-flask-server/data/provenance_db.sqlite \
