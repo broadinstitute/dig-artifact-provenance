@@ -209,7 +209,7 @@
     <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
 
     <section class="panel">
-      <h1 id="title">{{ artifact_id }}</h1>
+      <h1 id="title">Artifact Provenance</h1>
       <div class="muted">Database row details from the provenance service.</div>
       <div class="error" id="error-box"></div>
       <div id="detail-list"></div>
@@ -625,7 +625,6 @@
     function renderArtifactDetails(container, payload) {
       container.innerHTML = "";
 
-      appendField(container, "id", payload.id);
       appendField(container, "pipeline_type", payload.pipeline_type);
       appendField(container, "trait_name", payload.trait_name || payload.trait_legacy_id || "");
       appendField(container, "ancestry_name", payload.ancestry_name || payload.ancestry_id || "");
@@ -648,6 +647,17 @@
       }
     }
 
+    function artifactTitle(payload) {
+      const traitName = payload.trait_name || payload.trait_legacy_id || "";
+      const ancestryName = payload.ancestry_name || payload.ancestry_id || "";
+
+      if (traitName && ancestryName) {
+        return `${traitName} / ${ancestryName}`;
+      }
+
+      return traitName || ancestryName || payload.name || artifactId;
+    }
+
     async function loadArtifact() {
       const details = document.getElementById("detail-list");
       const errorBox = document.getElementById("error-box");
@@ -663,7 +673,7 @@
           throw new Error(payload.message || "Failed to load provenance record.");
         }
 
-        title.textContent = payload.name || payload.id || artifactId;
+        title.textContent = artifactTitle(payload);
         renderArtifactDetails(details, payload);
       } catch (error) {
         errorBox.style.display = "block";
