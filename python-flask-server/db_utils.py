@@ -57,6 +57,53 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
+def list_traits_full(database_file: Path) -> list[dict[str, object]]:
+    """List every trait with its bottom-line artifacts nested under 'ancestries'."""
+    try:
+        with connect_database(database_file) as connection:
+            trait_rows = connection.execute(
+                """
+                SELECT legacy_id, kpn_id, name, description
+                FROM prov_trait
+                ORDER BY name ASC, legacy_id ASC
+                """
+            ).fetchall()
+            artifact_rows = connection.execute(
+                """
+                SELECT
+                    artifact.id,
+                    artifact.name,
+                    artifact.trait_legacy_id,
+                    artifact.ancestry_id,
+                    trait.name AS trait_name,
+                    ancestry.name AS ancestry_name
+                FROM prov_artifact AS artifact
+                LEFT JOIN prov_trait AS trait
+                    ON artifact.trait_legacy_id = trait.legacy_id
+                LEFT JOIN prov_ancestry AS ancestry
+                    ON artifact.ancestry_id = ancestry.ancestry_id
+                WHERE artifact.pipeline_type = ?
+                ORDER BY ancestry.name ASC, artifact.id ASC
+                """,
+                ("bottom-line",),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list provenance traits with ancestries: {exc}") from exc
+
+    artifacts_by_trait: dict[str, list[dict[str, str | None]]] = {}
+    for row in artifact_rows:
+        artifact = {key: row[key] for key in row.keys()}
+        artifacts_by_trait.setdefault(artifact["trait_legacy_id"], []).append(artifact)
+
+    traits: list[dict[str, object]] = []
+    for row in trait_rows:
+        trait = {key: row[key] for key in row.keys()}
+        trait["ancestries"] = artifacts_by_trait.get(trait["legacy_id"], [])
+        traits.append(trait)
+
+    return traits
+
+
 def get_trait_by_legacy_id(database_file: Path, legacy_id: str) -> dict[str, str | None] | None:
     if not legacy_id:
         raise DatabaseError("Trait legacy id must not be empty.")
