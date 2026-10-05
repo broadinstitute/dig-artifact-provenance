@@ -18,6 +18,7 @@ from db_utils import (
     list_artifacts,
     list_bottom_line_by_trait,
     list_traits,
+    list_traits_full,
 )
 
 
@@ -192,6 +193,16 @@ def create_app() -> Flask:
             trait_rows = list_traits(app.config["DATABASE_FILE"])
         except DatabaseError as exc:
             logging.error("Database error in /ws/bottom_line/trait_list: %s", exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        return jsonify(trait_rows)
+
+    @app.get("/ws/bottom_line/trait_list_full")
+    def bottom_line_trait_list_full():
+        try:
+            trait_rows = list_traits_full(app.config["DATABASE_FILE"])
+        except DatabaseError as exc:
+            logging.error("Database error in /ws/bottom_line/trait_list_full: %s", exc)
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(trait_rows)
