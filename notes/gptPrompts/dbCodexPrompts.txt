@@ -16,10 +16,10 @@ field description which is a text nullable
 
 
 TBD - missing traits from guthub slack 
-Just verifying that I'm using the right file 
+Just verifying that I'm using the right file for the new KPN trait ontology
 https://github.com/broadinstitute/kpn-data-models/blob/main/versions/trait/v0.0.2/kpn_trait_registry.tsv 
 to link legacy trait IDs to the new DCC ontology and description
-I see about 296 missing legacy_phenotype_id values in the file that are in the bioindex/bottom-line but not in the registry file
+I see about 296 missing legacy_phenotype_id values that are in the bioindex/bottom-line but not in the registry file
 I eyeballed the list of missing
 here is a sample list (APTT, CWP, Cellulitis)
 

@@ -5,7 +5,14 @@ TBD
 - add port startup log 
 
 
-TBD - dk slack 
+TBD - verify missing trait codes 
+
+TBD - write tests to run against web page 
+
+TBD - make sure details page doesn't use WS 
+
+
+20261001 - dk slack 
 the bottom-line trait/ancestry provenance pages have been deployed to: https://translator.broadinstitute.org/artifact_provenance
 note that the dapper 0.2.0 has not been implemented yet; the provenance is version 0.1.0 
 example url for trait: https://translator.broadinstitute.org/artifact_provenance/bottom_line/T2D
@@ -14,12 +21,6 @@ the system uses the legacy trait code, which I assume is what the portal uses to
 ditto for the ancestry codes 
 all the codes come from the s3 bucket which I assume matches the bioindex codes
 
-
-TBD - verify missing trait codes 
-
-TBD - write tests to run against web page 
-
-TBD - make sure details page doesn't use WS 
 
 20261001 - cleanup 
 modify the flask web service application in python-flask-server
