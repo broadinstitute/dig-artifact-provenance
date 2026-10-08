@@ -5,6 +5,37 @@ write a python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
 the script will take --in_s3_bucket argument as an aws s3 bucket 
 and --in_sqlite_db as a sqlite3 database file location 
 and an optional --in_log_file that if provided will be the log file 
-and an optional --prov_file_name that defaults to 'geneset.provenance.dapper.yaml'
+and an optional --in_prov_file_name that defaults to 'geneset.provenance.dapper.yaml' and will the file name to search for
+the script will start by deleting any rows in the prov_artifact table with the pipeline_type equal to 'geneset'
+and also by deleting any rows in the prov_document table with the pipeline_type equal to 'geneset'.
+the script will reccursively search through the input aws s3 bucxket 
+and will parse all yaml files of the file name to search for.
+for each file, the script will iterarate through the list 'gene_set_collections' and pull the gene set id collection
+for each gene set collection, it will create a row in the prov_document table
+with the prov_document.document_text set to the file contents, 
+the prov_document.name set to the collection name field, 
+the prov_document.description set to the collection description
+prov_document.pipeline_type set to 'geneset',
+and the prov_document.document_id set to the collectino id.
+for each gene set in the gene set collection with its details in another part of the file  
+the script will add a row to the prov_artifact table for each gene set
+with prov_artifact.id set to the gene set id,
+prov_artifact.document_id set to the prov_document.document_id of the gene set collection,
+prov_artifact.pipeline_type set to 'geneset',
+prov_artifact.name set to the gene set name, 
+and prov_artifact.trait_legacy_id set to 'NaN'
+and prov_artifact.ancestry_id set to 'NaN'
+if a duplicate gene set collection id is already in the prov_document table, 
+skip the gene set collection and log the error with gene set collection id and name.
+if a duplicate gene set id that is already in the prov_artifact table, 
+skip the gene set and log the error with gene set id and name.
+for all files read, log its name and s3 path if possible
+for all gene set collections inserted, log its id and the number of associated gene sets 
+if any database field is missing or yaml file data is missing, do nothing, log error and exit 
+let me know if there are any concerns or issues
 
 
+
+
+and an optional --in_num_max 
+if the --in_num_max input is provided, the script will only process 

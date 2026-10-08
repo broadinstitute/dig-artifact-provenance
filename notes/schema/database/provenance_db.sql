@@ -5,17 +5,18 @@
 
 CREATE TABLE prov_artifact (
     id TEXT PRIMARY KEY,
-    pipeline_type TEXT NOT NULL,
+    pipeline_type TEXT NOT NULL,                -- foreign ket to prov_pipeline.pipeline_id
     provenance TEXT NOT NULL,
     name TEXT NOT NULL,
-    document_id TEXT NOT NULL default '',      -- foreign key to prov_document.document_id
-    trait_legacy_id TEXT NOT NULL,  -- foreign key to prov_trait.legacy_id
-    ancestry_id TEXT NOT NULL,      -- foreign key to prov_ancestry.ancestry_id
+    document_id TEXT NOT NULL default 'NaN',    -- foreign key to prov_document.document_id
+    trait_legacy_id TEXT NOT NULL,              -- foreign key to prov_trait.legacy_id
+    ancestry_id TEXT NOT NULL,                  -- foreign key to prov_ancestry.ancestry_id
     description TEXT
 );
 
 CREATE TABLE prov_document (
     document_id TEXT PRIMARY KEY,
+    pipeline_type TEXT NOT NULL,                -- foreign ket to prov_pipeline.pipeline_id
     name TEXT NOT NULL,
     document_text TEXT NOT NULL,
     description TEXT
@@ -32,7 +33,7 @@ CREATE TABLE drs_artifact (
 CREATE TABLE prov_trait (
     legacy_id TEXT PRIMARY KEY,
     kpn_id TEXT NOT NULL,
-    pipeline_type_id TEXT NOT NULL default 'bottom-line',
+    pipeline_type TEXT NOT NULL default 'bottom-line',
     name TEXT NOT NULL,
     description TEXT
 );
