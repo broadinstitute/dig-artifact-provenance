@@ -1,0 +1,36 @@
+
+
+
+
+• Created src/python/gene_set/ingest_gene_set_prov_from_s3.py:1.
+
+  The script:
+
+  - Requires --in_s3_bucket and --in_sqlite_db.
+  - Supports optional --in_log_file.
+  - Supports optional --in_prov_file_name, defaulting to exactly geneset.provenance.dapper.yaml.
+  - Deletes existing geneset rows from prov_artifact and prov_document.
+  - Loads matching S3 YAML files into prov_document.
+  - Loads gene sets into prov_artifact.
+  - Sets prov_artifact.provenance, trait_legacy_id, and ancestry_id to NaN.
+  - Skips/logs duplicate collection and gene set IDs.
+
+  Test completed with:
+
+  python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
+    --in_s3_bucket s3://dig-gene-set-data/marc-test/ \
+    --in_sqlite_db python-flask-server/data/provenance_test_db.sqlite \
+    --in_log_file /tmp/gene_set_provenance_ingest.log
+
+  Result:
+
+  - Read 4 exact-match S3 provenance files.
+  - Inserted 4 prov_document rows.
+  - Inserted 10,332 prov_artifact rows.
+  - Confirmed all loaded geneset artifact rows have provenance = 'NaN'.
+
+  No concerns beyond runtime: the extractor YAML files are large, so full ingest takes a couple of minutes.
+
+
+
+  

@@ -21,6 +21,7 @@ for each gene set in the gene set collection with its details in another part of
 the script will add a row to the prov_artifact table for each gene set
 with prov_artifact.id set to the gene set id,
 prov_artifact.document_id set to the prov_document.document_id of the gene set collection,
+prov_artifact.provenance set to 'NaN',
 prov_artifact.pipeline_type set to 'geneset',
 prov_artifact.name set to the gene set name, 
 and prov_artifact.trait_legacy_id set to 'NaN'
@@ -33,7 +34,8 @@ for all files read, log its name and s3 path if possible
 for all gene set collections inserted, log its id and the number of associated gene sets 
 if any database field is missing or yaml file data is missing, do nothing, log error and exit 
 let me know if there are any concerns or issues
-
+test the script with in_s3_bucket=s3://dig-gene-set-data/marc-test/
+and in_sqlite_db=python-flask-server/data/provenance_test_db.sqlite
 
 
 
