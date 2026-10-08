@@ -19,6 +19,7 @@ Optional arguments:
 - ``--in_log_file``: log file path. If omitted, logs are written to stdout.
 - ``--in_prov_file_name``: provenance YAML file basename to search for.
   Default: ``geneset.provenance.dapper.yaml``.
+  Only exact filename matches under an ``extractor`` directory segment are loaded.
 """
 
 from __future__ import annotations
@@ -149,10 +150,15 @@ def list_matching_s3_files(s3_uri: str, file_name: str) -> list[str]:
         if len(parts) != 4:
             continue
         key = parts[3]
-        if Path(key).name == file_name:
+        if is_matching_provenance_key(key, file_name):
             matches.append(f"s3://{location.bucket}/{key}")
 
     return sorted(matches)
+
+
+def is_matching_provenance_key(s3_key: str, file_name: str) -> bool:
+    path_parts = Path(s3_key).parts
+    return Path(s3_key).name == file_name and "extractor" in path_parts[:-1]
 
 
 def read_s3_text(s3_uri: str) -> str:

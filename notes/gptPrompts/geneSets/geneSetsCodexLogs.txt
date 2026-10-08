@@ -1,6 +1,44 @@
 
 
 
+• The test completed and read only 2 S3 files, both extractor provenance files. I’m checking the database counts and log paths to confirm the workflow files were excluded.
+
+• Explored
+  └ Read gene_set_provenance_ingest_extractor_only.log
+
+• Ran sqlite3 python-flask-server/data/provenance_test_db.sqlite "SELECT pipeline_type, COUNT(*) FROM prov_document GROUP BY pipeline_type;" "SELECT pipeline_type, COUNT(*), MIN(provenance), MAX(provenance), MIN(trait_legacy_id), MAX(trait_legacy_id),
+  │ MIN(ancestry_id), MAX(ancestry_id) FROM prov_artifact WHERE pipeline_type = 'geneset';"
+  └ geneset|2
+    geneset|10332|NaN|NaN|NaN|NaN|NaN|NaN
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Updated src/python/gene_set/ingest_gene_set_prov_from_s3.py:1 so it only loads exact provenance filename matches under an extractor directory segment. This includes paths like .../extractor/geneset.provenance.dapper.yaml and .../extractor/subdir/
+  geneset.provenance.dapper.yaml, and excludes workflow/selection.
+
+  Tested with:
+
+  python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
+    --in_s3_bucket s3://dig-gene-set-data/marc-test/ \
+    --in_sqlite_db python-flask-server/data/provenance_test_db.sqlite \
+    --in_log_file /tmp/gene_set_provenance_ingest_extractor_only.log
+
+  Result:
+
+  - Read 2 S3 provenance files.
+  - Inserted 2 prov_document rows.
+  - Inserted 10,332 prov_artifact rows.
+  - Confirmed prov_artifact.provenance, trait_legacy_id, and ancestry_id are all NaN for loaded geneset artifacts.
+
+  Loaded files:
+
+  s3://dig-gene-set-data/marc-test/RummaGEO/genesets/all_signatures/models/HZ1/extractor/geneset.provenance.dapper.yaml
+  s3://dig-gene-set-data/marc-test/RummaGEO/genesets/all_signatures/models/HZ2/extractor/geneset.provenance.dapper.yaml
+
+  No concerns beyond expected runtime from parsing the large extractor YAML files.
+
+
+
 
 • Created src/python/gene_set/ingest_gene_set_prov_from_s3.py:1.
 
@@ -33,4 +71,3 @@
 
 
 
-  

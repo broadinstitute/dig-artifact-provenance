@@ -1,5 +1,18 @@
 
 
+
+TBD - add max number file to read 
+
+
+20261008 - only use extractor dapper files 
+update the python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
+so that only the yaml files in the s3 bucket in a directory named 'extractor' or one of sub directories gets parsed for loading
+let me know if there are any concerns or issues
+test the script with in_s3_bucket=s3://dig-gene-set-data/marc-test/
+and in_sqlite_db=python-flask-server/data/provenance_test_db.sqlite
+
+
+
 20261006 - ingest gene sets from s3 
 write a python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
 the script will take --in_s3_bucket argument as an aws s3 bucket 
