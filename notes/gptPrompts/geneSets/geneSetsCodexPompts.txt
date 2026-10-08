@@ -1,0 +1,10 @@
+
+
+20261006 - ingest gene sets from s3 
+write a python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
+the script will take --in_s3_bucket argument as an aws s3 bucket 
+and --in_sqlite_db as a sqlite3 database file location 
+and an optional --in_log_file that if provided will be the log file 
+and an optional --prov_file_name that defaults to 'geneset.provenance.dapper.yaml'
+
+

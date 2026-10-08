@@ -1,0 +1,38 @@
+
+
+
+Notes:
+------
+- multiple gene sets per prov doc 
+  - name prov doc id by gene set collection id 
+- data to pull from prov doc  
+  - gene set readable name 
+
+
+
+- to do for expansion from bottom line to gene sets 
+  - add prov_type table
+  - add prov_type to phenotype
+  - add prov_document table 
+    - add prov_artifact.prov_document_id 
+
+
+
+Steps for gene set load
+- load prov doc with pk as collection dapper id
+  - if duplicate collection id, skip and log
+- load each gene set into prov artifact, use gene set dapper id as pk
+  - pull the reada ble name from the details section of the gene set 
+  - if duplicate gene set id, skip and log id and collection id
+- log each file read 
+  - log each collection read 
+  - log gene set count per collection 
+- log cout colkection, count total gene sets
+
+
+Modification for bottom line 
+- remove prov from prov artifact table
+- mod uploader to insert doc in prov dc table with pk as bottom-line id
+  - use same id as prov artifact pk 
+
+
