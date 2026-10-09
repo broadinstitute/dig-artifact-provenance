@@ -5,6 +5,16 @@ TBD - make / just two links to bottom-line and geneset
 TBD - add /gene_set_collection that lists gene sets for the collection 
 
 
+20281009 - make new home page
+modify the flask web service application in python-flask-server
+move the current home page to /home/botton_line 
+add a gene set home page at /home/gene_set 
+that will list the  names in the prov_document database table
+create a new application home page that has a link to the bottom-line and geneset home pages above 
+put the database access logic in the python-flask-server/db_utils.py script 
+let me know if there are any concerns or issues
+
+
 20261008 - gene sets web page 
 modify the /gene_set/details/id=<input_geneset_id> web page that takes in the input trait 
 add in a graph element similar to the one the bottom-line details page

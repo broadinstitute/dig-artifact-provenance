@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Artifact Provenance</title>
+  <title>Gene Set Provenance</title>
   <style>
     :root {
       color-scheme: light;
@@ -28,8 +28,20 @@
       padding: 32px 20px 56px;
     }
 
+    .back-link {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
     .banner,
-    .card {
+    .panel {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 18px;
@@ -53,54 +65,93 @@
       font-size: 1rem;
     }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 18px;
+    .panel {
       margin-top: 22px;
+      padding: 18px 22px 24px;
     }
 
-    .card {
-      display: block;
-      padding: 22px 24px;
-      color: var(--ink);
-      text-decoration: none;
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
-    .card:hover {
-      border-color: var(--accent);
-      text-decoration: none;
-    }
-
-    .card h2 {
-      margin: 0 0 8px;
-      color: var(--accent);
-      font-size: 1.35rem;
-    }
-
-    .card p {
+    .panel-head h2 {
       margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .meta,
+    .document-id,
+    .description {
       color: var(--muted);
-      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    .error {
+      color: #a12626;
+      margin-top: 12px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+    }
+
+    li {
+      padding: 12px 0;
+      word-break: break-word;
+    }
+
+    li + li {
+      border-top: 1px solid #ece3d2;
+    }
+
+    .document-name {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .document-id,
+    .description {
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
   <main class="page">
+    <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
+
     <section class="banner">
-      <h1>Artifact Provenance</h1>
-      <p class="subtitle">Browse provenance records by pipeline.</p>
+      <h1>Gene Set Provenance</h1>
+      <p class="subtitle">Browse gene-set provenance collections.</p>
     </section>
 
-    <section class="cards">
-      <a class="card" href="#" data-app-route="home/botton_line">
-        <h2>Bottom-line</h2>
-        <p>Browse bottom-line provenance by trait and ancestry.</p>
-      </a>
-      <a class="card" href="#" data-app-route="home/gene_set">
-        <h2>Gene sets</h2>
-        <p>Browse gene-set provenance collections.</p>
-      </a>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Collections</h2>
+        <div class="meta">{{ documents|length }} collection{{ '' if documents|length == 1 else 's' }}</div>
+      </div>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% elif documents %}
+        <ul>
+          {% for document in documents %}
+            <li>
+              <div class="document-name">{{ document.name }}</div>
+              <div class="document-id">{{ document.document_id }}</div>
+              {% if document.description %}
+                <div class="description">{{ document.description }}</div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="meta">No gene-set provenance collections are available.</div>
+      {% endif %}
     </section>
   </main>
   <script>

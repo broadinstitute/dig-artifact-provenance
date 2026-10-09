@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bottom-line Provenance</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe5;
+      --panel: #fffdf7;
+      --ink: #1c1a16;
+      --muted: #6b6255;
+      --accent: #0e6b63;
+      --border: #d7cfbf;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: linear-gradient(180deg, #ede5d4 0%, var(--bg) 42%, #f7f4ec 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .banner {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px 28px;
+      box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .panel {
+      margin-top: 22px;
+      background: rgba(255, 253, 247, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px 22px 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.15rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .error {
+      color: #a12626;
+      margin-top: 12px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0;
+    }
+
+    li + li {
+      border-top: 1px solid #ece3d2;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .artifact-link {
+      display: block;
+      padding: 12px 0;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
+
+    <section class="banner">
+      <h1>Bottom-line Provenance</h1>
+      <p class="subtitle">Browse bottom-line provenance by trait.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Traits</h2>
+        <div class="meta">{{ traits|length }} trait{{ '' if traits|length == 1 else 's' }}</div>
+      </div>
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% elif traits %}
+        <ul>
+          {% for trait in traits %}
+            <li>
+              <a class="artifact-link" href="#" data-app-route="bottom_line/{{ trait.legacy_id|urlencode }}">
+                {{ trait.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="meta">No traits are available.</div>
+      {% endif %}
+    </section>
+  </main>
+  <script>
+    function appRootPath() {
+      const routeMarkers = new Set(["artifact", "bottom_line", "gene_set", "home", "ws", "get_provenance", "list", "traits", "drs"]);
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const markerIndex = parts.findIndex((part) => routeMarkers.has(part));
+
+      if (markerIndex >= 0) {
+        const prefix = parts.slice(0, markerIndex).join("/");
+        return prefix ? `/${prefix}/` : "/";
+      }
+
+      if (window.location.pathname === "/" || window.location.pathname.endsWith("/")) {
+        return window.location.pathname;
+      }
+
+      return `${window.location.pathname}/`;
+    }
+
+    function appUrl(route) {
+      return new URL(route.replace(/^\/+/, ""), `${window.location.origin}${appRootPath()}`).toString();
+    }
+
+    for (const link of document.querySelectorAll("[data-app-route]")) {
+      link.href = appUrl(link.dataset.appRoute || "");
+    }
+  </script>
+</body>
+</html>

@@ -63,6 +63,24 @@ def list_traits(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
+def list_gene_set_documents(database_file: Path) -> list[dict[str, str | None]]:
+    try:
+        with connect_database(database_file) as connection:
+            rows = connection.execute(
+                """
+                SELECT document_id, name, description
+                FROM prov_document
+                WHERE pipeline_type = ?
+                ORDER BY name ASC, document_id ASC
+                """,
+                ("geneset",),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list gene-set provenance documents: {exc}") from exc
+
+    return [{key: row[key] for key in row.keys()} for row in rows]
+
+
 def list_traits_full(database_file: Path) -> list[dict[str, object]]:
     """List every trait with its bottom-line artifacts nested under 'ancestries'."""
     try:

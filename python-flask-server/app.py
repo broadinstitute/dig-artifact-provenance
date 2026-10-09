@@ -18,6 +18,7 @@ from db_utils import (
     get_trait_by_legacy_id,
     list_artifacts,
     list_bottom_line_by_trait,
+    list_gene_set_documents,
     list_traits,
     list_traits_full,
 )
@@ -51,8 +52,7 @@ def configure_logging(log_file: Path) -> None:
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    database_file = Path(os.environ.get("WS_PROVENANCE_DB", str(DEFAULT_DATABASE))).expanduser().resolve()
-    # database_file = DEFAULT_DATABASE.resolve()
+    database_file = DEFAULT_DATABASE.resolve()
     log_file = Path(os.environ.get("WS_PROVENANCE_LOG", str(DEFAULT_LOG_FILE))).expanduser().resolve()
 
     configure_logging(log_file)
@@ -65,13 +65,27 @@ def create_app() -> Flask:
 
     @app.get("/")
     def home():
+        return render_template("index.html")
+
+    @app.get("/home/botton_line")
+    def bottom_line_home():
         try:
             trait_rows = list_traits(app.config["DATABASE_FILE"])
         except DatabaseError as exc:
-            logging.error("Database error in home trait list: %s", exc)
-            return render_template("index.html", traits=[], error=str(exc)), 500
+            logging.error("Database error in bottom-line home trait list: %s", exc)
+            return render_template("bottom_line_home.html", traits=[], error=str(exc)), 500
 
-        return render_template("index.html", traits=trait_rows, error=None)
+        return render_template("bottom_line_home.html", traits=trait_rows, error=None)
+
+    @app.get("/home/gene_set")
+    def gene_set_home():
+        try:
+            documents = list_gene_set_documents(app.config["DATABASE_FILE"])
+        except DatabaseError as exc:
+            logging.error("Database error in gene-set home document list: %s", exc)
+            return render_template("gene_set_home.html", documents=[], error=str(exc)), 500
+
+        return render_template("gene_set_home.html", documents=documents, error=None)
 
     @app.get("/artifact/<path:artifact_id>")
     def artifact_detail(artifact_id: str):
