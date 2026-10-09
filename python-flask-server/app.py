@@ -14,11 +14,13 @@ from flask import Flask, jsonify, redirect, render_template, request
 from db_utils import (
     DatabaseError,
     get_gene_set_details_by_id,
+    get_gene_set_document_by_id,
     get_provenance_by_id,
     get_trait_by_legacy_id,
     list_artifacts,
     list_bottom_line_by_trait,
     list_gene_set_documents,
+    list_gene_sets_by_document_id,
     list_traits,
     list_traits_full,
 )
@@ -121,6 +123,41 @@ def create_app() -> Flask:
             ), 404
 
         return render_template("gene_set_detail.html", gene_set=gene_set, error=None)
+
+    @app.get("/gene_set/list/id=<path:input_gene_collection_id>")
+    def gene_set_collection_list(input_gene_collection_id: str):
+        collection_id = input_gene_collection_id.strip()
+        if not collection_id:
+            logging.error("Missing or empty collection id path parameter in /gene_set/list")
+            return render_template(
+                "gene_set_list.html",
+                document=None,
+                gene_sets=[],
+                error="Gene set collection id is required.",
+            ), 400
+
+        try:
+            document = get_gene_set_document_by_id(app.config["DATABASE_FILE"], collection_id)
+            gene_sets = list_gene_sets_by_document_id(app.config["DATABASE_FILE"], collection_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /gene_set/list for id %s: %s", collection_id, exc)
+            return render_template(
+                "gene_set_list.html",
+                document=None,
+                gene_sets=[],
+                error=str(exc),
+            ), 500
+
+        if document is None:
+            logging.error("Gene set collection id not found in /gene_set/list: %s", collection_id)
+            return render_template(
+                "gene_set_list.html",
+                document=None,
+                gene_sets=[],
+                error=f"No gene set collection found for id '{collection_id}'.",
+            ), 404
+
+        return render_template("gene_set_list.html", document=document, gene_sets=gene_sets, error=None)
 
     @app.get("/bottom_line/<input_trait>/<input_ancestry>")
     def bottom_line_trait_ancestry(input_trait: str, input_ancestry: str):

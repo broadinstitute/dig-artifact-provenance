@@ -1,5 +1,33 @@
 
 
+
+
+
+
+• Implemented the new home-page structure.
+
+  Changes:
+
+  - / is now an application landing page with links to:
+      - /home/botton_line
+      - /home/gene_set
+
+  - Moved the previous trait-list home page to /home/botton_line.
+  - Added /home/gene_set, listing prov_document.name values for pipeline_type = 'geneset'.
+  - Added list_gene_set_documents() in python-flask-server/db_utils.py:56.
+  - Re-locked the Flask app to python-flask-server/data/provenance_db.sqlite.
+
+  Verification passed:
+
+  - Python compile checks.
+  - /, /home/botton_line, and /home/gene_set all return 200.
+  - JS syntax checks for the affected templates passed.
+
+  No concerns.
+
+
+
+
 • Implemented the gene-set detail graph.
 
   Changes:
@@ -20,7 +48,7 @@
 
   Concern addressed: parsing the full 84 MB YAML document per request was too slow, so I switched to targeted YAML section parsing with PyYAML for only the relevant blocks.
 
-  
+
 
 
 • Concerns before implementation:

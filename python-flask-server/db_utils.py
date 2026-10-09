@@ -81,6 +81,52 @@ def list_gene_set_documents(database_file: Path) -> list[dict[str, str | None]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
+def get_gene_set_document_by_id(database_file: Path, document_id: str) -> dict[str, str | None] | None:
+    if not document_id:
+        raise DatabaseError("Gene-set collection id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            row = connection.execute(
+                """
+                SELECT document_id, name, description
+                FROM prov_document
+                WHERE document_id = ?
+                    AND pipeline_type = ?
+                """,
+                (document_id, "geneset"),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to fetch gene-set provenance document {document_id}: {exc}") from exc
+
+    if row is None:
+        return None
+
+    return {key: row[key] for key in row.keys()}
+
+
+def list_gene_sets_by_document_id(database_file: Path, document_id: str) -> list[dict[str, str | None]]:
+    if not document_id:
+        raise DatabaseError("Gene-set collection id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, description
+                FROM prov_artifact
+                WHERE document_id = ?
+                    AND pipeline_type = ?
+                ORDER BY name ASC, id ASC
+                """,
+                (document_id, "geneset"),
+            ).fetchall()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to list gene sets for collection {document_id}: {exc}") from exc
+
+    return [{key: row[key] for key in row.keys()} for row in rows]
+
+
 def list_traits_full(database_file: Path) -> list[dict[str, object]]:
     """List every trait with its bottom-line artifacts nested under 'ancestries'."""
     try:

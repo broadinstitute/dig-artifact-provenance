@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gene Set Provenance</title>
+  <title>{{ document.name if document else "Gene Set Collection" }}</title>
   <style>
     :root {
       color-scheme: light;
@@ -23,9 +23,9 @@
     }
 
     .page {
-      max-width: 980px;
+      max-width: 1080px;
       margin: 0 auto;
-      padding: 32px 20px 56px;
+      padding: 28px 20px 56px;
     }
 
     .back-link {
@@ -40,58 +40,29 @@
       text-decoration: underline;
     }
 
-    .banner,
     .panel {
-      background: var(--panel);
+      background: rgba(255, 253, 247, 0.94);
       border: 1px solid var(--border);
       border-radius: 18px;
+      padding: 22px 24px;
       box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
     }
 
-    .banner {
-      padding: 24px 28px;
-    }
-
     h1 {
-      margin: 0;
-      font-size: clamp(2rem, 5vw, 3.4rem);
-      line-height: 1;
-      letter-spacing: -0.04em;
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.05;
+      word-break: break-word;
     }
 
-    .subtitle {
-      margin: 10px 0 0;
+    .muted {
       color: var(--muted);
-      font-size: 1rem;
-    }
-
-    .panel {
-      margin-top: 22px;
-      padding: 18px 22px 24px;
-    }
-
-    .panel-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 1.15rem;
-    }
-
-    .meta,
-    .description {
-      color: var(--muted);
-      font-size: 0.95rem;
+      margin: 0 0 18px;
     }
 
     .error {
       color: #a12626;
-      margin-top: 12px;
+      margin: 16px 0 0;
     }
 
     ul {
@@ -101,7 +72,7 @@
     }
 
     li {
-      padding: 12px 0;
+      padding: 11px 0;
       word-break: break-word;
     }
 
@@ -109,52 +80,46 @@
       border-top: 1px solid #ece3d2;
     }
 
-    .document-name {
-      font-weight: 700;
+    a {
       color: var(--accent);
       text-decoration: none;
     }
 
-    .document-name:hover {
+    a:hover {
       text-decoration: underline;
     }
 
-    .description {
-      margin-top: 4px;
+    .empty {
+      color: var(--muted);
+      margin-top: 18px;
     }
   </style>
 </head>
 <body>
   <main class="page">
-    <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
-
-    <section class="banner">
-      <h1>Gene Set Provenance</h1>
-      <p class="subtitle">Browse gene-set provenance collections.</p>
-    </section>
+    <a class="back-link" href="#" data-app-route="home/gene_set">&larr; Back to Gene Set Provenance</a>
 
     <section class="panel">
-      <div class="panel-head">
-        <h2>Collections</h2>
-        <div class="meta">{{ documents|length }} collection{{ '' if documents|length == 1 else 's' }}</div>
-      </div>
+      <h1>{{ document.name if document else "Gene Set Collection" }}</h1>
+      {% if document and document.description %}
+        <p class="muted">{{ document.description }}</p>
+      {% endif %}
+
       {% if error %}
         <div class="error">{{ error }}</div>
-      {% elif documents %}
+      {% elif gene_sets %}
+        <p class="muted">{{ gene_sets|length }} gene set{{ '' if gene_sets|length == 1 else 's' }} found.</p>
         <ul>
-          {% for document in documents %}
+          {% for gene_set in gene_sets %}
             <li>
-              <a class="document-name" href="#" data-app-route="gene_set/list/id={{ document.document_id|urlencode }}">
-                {{ document.name }}
+              <a href="#" data-app-route="gene_set/details/id={{ gene_set.id|urlencode }}">
+                {{ gene_set.name }}
               </a>
-              {% if document.description %}
-                <div class="description">{{ document.description }}</div>
-              {% endif %}
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <div class="meta">No gene-set provenance collections are available.</div>
+        <div class="empty">No gene sets were found for this collection.</div>
       {% endif %}
     </section>
   </main>

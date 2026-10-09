@@ -1,15 +1,24 @@
 
-TBD - move the current home page to /home/bottom_line/
-TBD - add /home/gene_set, that lists gene set collections
-TBD - make / just two links to bottom-line and geneset 
-TBD - add /gene_set_collection that lists gene sets for the collection 
 
 
 20281009 - make new home page
+TBD - add /gene_set_collection that lists gene sets for the collection 
+modify the /home/gene_set page, remove the prov_document.id from the element listings
+for each name in the list, add a href link that goes to /gene_set/list/id=<input_gene_collection_id>
+that will be listing all the gene set prov_artifact rows that have a matching document_id
+the /gene_set/list/id=<input_gene_collection_id> page itself will contain the gene set name 
+with a link to the /gene_set/details/id=<input_geneset_id> web page
+put the database access logic in the python-flask-server/db_utils.py script 
+let me know if there are any concerns or issues
+
+
+TBD - move the current home page to /home/bottom_line/
+TBD - add /home/gene_set, that lists gene set collections
+TBD - make / just two links to bottom-line and geneset 
 modify the flask web service application in python-flask-server
 move the current home page to /home/botton_line 
 add a gene set home page at /home/gene_set 
-that will list the  names in the prov_document database table
+that will list the names in the prov_document database table
 create a new application home page that has a link to the bottom-line and geneset home pages above 
 put the database access logic in the python-flask-server/db_utils.py script 
 let me know if there are any concerns or issues
