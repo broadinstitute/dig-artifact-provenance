@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
+
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
 
 class DatabaseError(Exception):
@@ -229,8 +235,11 @@ def get_gene_set_details_by_id(database_file: Path, gene_set_id: str) -> dict[st
                     COALESCE(pipeline.name, artifact.pipeline_type) AS pipeline_type,
                     artifact.pipeline_type AS pipeline_id,
                     artifact.document_id,
+                    document.document_text,
                     artifact.description
                 FROM prov_artifact AS artifact
+                LEFT JOIN prov_document AS document
+                    ON artifact.document_id = document.document_id
                 LEFT JOIN prov_pipeline AS pipeline
                     ON artifact.pipeline_type = pipeline.pipeline_id
                 WHERE artifact.id = ?
@@ -244,4 +253,141 @@ def get_gene_set_details_by_id(database_file: Path, gene_set_id: str) -> dict[st
     if row is None:
         return None
 
-    return {key: row[key] for key in row.keys()}
+    artifact = {key: row[key] for key in row.keys()}
+    document_text = artifact.pop("document_text", None)
+    artifact["graph"] = build_gene_set_graph(gene_set_id, document_text)
+    return artifact
+
+
+def build_gene_set_graph(gene_set_id: str, document_text: str | None) -> dict[str, list[dict[str, str | None]]]:
+    if not document_text:
+        return {"nodes": [], "edges": []}
+    if yaml is None:
+        raise DatabaseError("PyYAML is required to parse gene-set provenance document_text.")
+
+    gene_set = extract_yaml_item_by_id(document_text, "gene_sets", gene_set_id)
+    if gene_set is None:
+        return {"nodes": [{"id": gene_set_id, "name": gene_set_id, "dapper_class": "GeneSet"}], "edges": []}
+
+    used_edges = parse_yaml_section(document_text, "used_edges")
+    generated_edges = parse_yaml_section(document_text, "was_generated_by_edges")
+    matching_generated_edges = [
+        edge
+        for edge in generated_edges
+        if isinstance(edge, dict) and edge.get("subject") == gene_set_id and edge.get("object")
+    ]
+
+    activity_ids = {str(edge["object"]) for edge in matching_generated_edges}
+    if gene_set.get("was_generated_by"):
+        activity_id = str(gene_set["was_generated_by"])
+        activity_ids.add(activity_id)
+        if not any(edge.get("object") == activity_id for edge in matching_generated_edges):
+            matching_generated_edges.append(
+                {
+                    "subject": gene_set_id,
+                    "predicate": "prov:wasGeneratedBy",
+                    "object": activity_id,
+                }
+            )
+
+    matching_used_edges = [
+        edge
+        for edge in used_edges
+        if isinstance(edge, dict) and edge.get("subject") in activity_ids and edge.get("object")
+    ]
+    file_ids = {str(edge["object"]) for edge in matching_used_edges}
+
+    nodes = [
+        normalize_gene_set_graph_node(gene_set, gene_set_id, "GeneSet", "gene_sets"),
+    ]
+    for activity_id in sorted(activity_ids):
+        activity = extract_yaml_item_by_id(document_text, "activities", activity_id) or {"id": activity_id}
+        nodes.append(normalize_gene_set_graph_node(activity, activity_id, "Activity", "activities"))
+    for file_id in sorted(file_ids):
+        file_node = extract_yaml_item_by_id(document_text, "files", file_id) or {"id": file_id}
+        nodes.append(normalize_gene_set_graph_node(file_node, file_id, "File", "files"))
+
+    graph_edges = matching_generated_edges + matching_used_edges
+    edges = [
+        {
+            "id": f"{edge.get('predicate', 'edge')}-{index}-{edge['subject']}-{edge['object']}",
+            "source": str(edge["subject"]),
+            "target": str(edge["object"]),
+            "predicate": edge.get("predicate"),
+            "edge_role": edge.get("edge_role"),
+        }
+        for index, edge in enumerate(graph_edges)
+    ]
+
+    return {"nodes": nodes, "edges": edges}
+
+
+def normalize_gene_set_graph_node(
+    node: dict,
+    node_id: str,
+    dapper_class: str,
+    node_group: str,
+) -> dict[str, str | None]:
+    return {
+        "id": node_id,
+        "name": node.get("name") or node.get("filename") or node_id,
+        "description": node.get("description"),
+        "dapper_class": dapper_class,
+        "node_group": node_group,
+    }
+
+
+def parse_yaml_section(document_text: str, section_name: str) -> list[dict]:
+    section_text = extract_top_level_section(document_text, section_name)
+    if not section_text.strip():
+        return []
+    try:
+        loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+        parsed = yaml.load(section_text, Loader=loader)
+    except yaml.YAMLError as exc:
+        raise DatabaseError(f"Stored gene-set provenance section {section_name} is not valid YAML: {exc}") from exc
+
+    if parsed is None:
+        return []
+    if not isinstance(parsed, list):
+        raise DatabaseError(f"Stored gene-set provenance section {section_name} must be a YAML list.")
+    return parsed
+
+
+def extract_yaml_item_by_id(document_text: str, section_name: str, item_id: str) -> dict | None:
+    section_text = extract_top_level_section(document_text, section_name)
+    if not section_text:
+        return None
+
+    marker = f"- id: {item_id}\n"
+    item_start = section_text.find(marker)
+    if item_start < 0:
+        return None
+
+    next_item_start = section_text.find("\n- id:", item_start + len(marker))
+    item_text = section_text[item_start:] if next_item_start < 0 else section_text[item_start:next_item_start]
+
+    try:
+        loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+        parsed = yaml.load(item_text, Loader=loader)
+    except yaml.YAMLError as exc:
+        raise DatabaseError(f"Stored gene-set provenance item {item_id} is not valid YAML: {exc}") from exc
+
+    if not isinstance(parsed, list) or not parsed or not isinstance(parsed[0], dict):
+        raise DatabaseError(f"Stored gene-set provenance item {item_id} must be a YAML mapping.")
+    return parsed[0]
+
+
+def extract_top_level_section(document_text: str, section_name: str) -> str:
+    section_marker = f"{section_name}:\n"
+    section_start = document_text.find(section_marker)
+    if section_start < 0:
+        return ""
+
+    content_start = section_start + len(section_marker)
+    next_section = re.search(r"\n(?=[A-Za-z_][A-Za-z0-9_]*:\n)", document_text[content_start:])
+    next_section_start = len(document_text)
+    if next_section is not None:
+        next_section_start = content_start + next_section.start() + 1
+
+    return document_text[content_start:next_section_start]

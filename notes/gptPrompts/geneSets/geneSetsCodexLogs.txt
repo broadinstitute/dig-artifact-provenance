@@ -1,5 +1,39 @@
 
 
+• Implemented the gene-set detail graph.
+
+  Changes:
+
+  - python-flask-server/db_utils.py:235 now joins prov_document.document_text and builds a focused graph for the selected gene set.
+  - The graph uses used_edges and was_generated_by_edges, with a fallback to the selected gene set’s was_generated_by field because the current DAPPER documents store gene-set generation there.
+  - python-flask-server/templates/gene_set_detail.html:1 now renders a Cytoscape graph below pipeline_type.
+  - The graph includes directly relevant file inputs, the generating activity, and the selected gene-set output.
+
+  Verification:
+
+  - Python compile passed.
+  - JavaScript syntax check passed.
+  - /ws/gene_set/details/id=<id> returns 200.
+  - /gene_set/details/id=<id> returns 200.
+  - Test graph returned 9 nodes and 8 edges.
+  - Detail page still omits trait, ancestry, and provenance fields.
+
+  Concern addressed: parsing the full 84 MB YAML document per request was too slow, so I switched to targeted YAML section parsing with PyYAML for only the relevant blocks.
+
+  
+
+
+• Concerns before implementation:
+
+  - prov_document.document_text is YAML, not JSON, so the Flask app will need PyYAML available in the runtime environment to parse used_edges and was_generated_by_edges.
+  - The graph for a full gene-set collection may be large. I recommend filtering the graph to the selected gene set plus directly connected activity/file nodes, rather than rendering the entire collection graph.
+  - used_edges and was_generated_by_edges only contain edge relationships. The node display labels will need to come from the top-level YAML node lists such as files, activities, gene_sets, and gene_set_collections.
+  - The prov_artifact.provenance value is now NaN, so the graph must come entirely from the joined prov_document.document_text, as requested.
+  - The current gene-set detail page is server-rendered. I recommend doing the YAML parsing in db_utils.py, returning a normalized graph object with nodes and edges, then rendering it client-side with Cytoscape like the bottom-line detail page.
+
+  If that approach is acceptable, I’ll implement it next.
+
+
 
 • The test completed and read only 2 S3 files, both extractor provenance files. I’m checking the database counts and log paths to confirm the workflow files were excluded.
 

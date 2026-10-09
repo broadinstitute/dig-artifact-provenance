@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ gene_set.name if gene_set else "Gene Set Detail" }}</title>
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -83,6 +84,76 @@
       overflow-wrap: anywhere;
       white-space: pre-wrap;
     }
+
+    .graph-shell {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .graph-meta,
+    .graph-legend {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend-shape {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #094842;
+      background: #0e6b63;
+    }
+
+    .legend-file {
+      background: #0e6b63;
+      border-color: #094842;
+    }
+
+    .legend-activity {
+      width: 20px;
+      border-radius: 4px;
+      background: #d17b0f;
+      border-color: #9c5704;
+    }
+
+    .legend-gene-set {
+      background: #59603a;
+      border-color: #3c4126;
+      border-radius: 50%;
+    }
+
+    .graph-empty {
+      padding: 14px 16px;
+      color: var(--muted);
+    }
+
+    #gene-set-graph {
+      height: 560px;
+      background: #fffaf0;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 720px) {
+      #gene-set-graph {
+        height: 520px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -105,6 +176,18 @@
           <div class="field-value">{{ gene_set.pipeline_type }}</div>
         </div>
         <div class="field-block">
+          <div class="field-label">graph</div>
+          <div class="graph-shell">
+            <div class="graph-meta" id="graph-meta"></div>
+            <div class="graph-legend">
+              <span class="legend-item"><span class="legend-shape legend-file"></span>File input</span>
+              <span class="legend-item"><span class="legend-shape legend-activity"></span>Process activity</span>
+              <span class="legend-item"><span class="legend-shape legend-gene-set"></span>Gene set output</span>
+            </div>
+            <div id="gene-set-graph"></div>
+          </div>
+        </div>
+        <div class="field-block">
           <div class="field-label">pipeline_id</div>
           <div class="field-value">{{ gene_set.pipeline_id }}</div>
         </div>
@@ -123,6 +206,8 @@
   </main>
 
   <script>
+    const geneSetGraph = {{ (gene_set.graph if gene_set else {"nodes": [], "edges": []})|tojson }};
+
     function appRootPath() {
       const routeMarkers = new Set(["artifact", "bottom_line", "gene_set", "ws", "get_provenance", "list", "traits", "drs"]);
       const parts = window.location.pathname.split("/").filter(Boolean);
@@ -147,6 +232,187 @@
     for (const link of document.querySelectorAll("[data-app-route]")) {
       link.href = appUrl(link.dataset.appRoute || "");
     }
+
+    function labelForNode(node) {
+      return node.name || node.filename || node.id;
+    }
+
+    function visualEdge(edge) {
+      return {
+        source: edge.target,
+        target: edge.source,
+      };
+    }
+
+    function buildTopDownGraph(edges, nodeIds) {
+      const adjacency = new Map();
+      const incomingCount = new Map();
+
+      for (const nodeId of nodeIds) {
+        adjacency.set(nodeId, []);
+        incomingCount.set(nodeId, 0);
+      }
+
+      for (const edge of edges) {
+        const {source, target} = visualEdge(edge);
+        adjacency.get(source)?.push(target);
+        incomingCount.set(target, (incomingCount.get(target) || 0) + 1);
+      }
+
+      const roots = [...nodeIds].filter((nodeId) => (incomingCount.get(nodeId) || 0) === 0).sort();
+      const depth = new Map();
+      const queue = roots.map((nodeId) => {
+        depth.set(nodeId, 0);
+        return nodeId;
+      });
+
+      while (queue.length > 0) {
+        const nodeId = queue.shift();
+        const nextDepth = (depth.get(nodeId) || 0) + 1;
+
+        for (const nextNode of adjacency.get(nodeId) || []) {
+          if (!depth.has(nextNode) || nextDepth > depth.get(nextNode)) {
+            depth.set(nextNode, nextDepth);
+            queue.push(nextNode);
+          }
+        }
+      }
+
+      for (const nodeId of nodeIds) {
+        if (!depth.has(nodeId)) {
+          depth.set(nodeId, 0);
+        }
+      }
+
+      const layers = new Map();
+      for (const nodeId of nodeIds) {
+        const layer = depth.get(nodeId) || 0;
+        if (!layers.has(layer)) {
+          layers.set(layer, []);
+        }
+        layers.get(layer).push(nodeId);
+      }
+
+      const maxLayer = Math.max(...layers.keys(), 0);
+      const width = Math.max(900, Math.max(...[...layers.values()].map((layer) => layer.length), 1) * 190);
+      const height = Math.max(560, (maxLayer + 1) * 140);
+      const positions = new Map();
+
+      for (const [layer, layerNodes] of layers.entries()) {
+        layerNodes.sort();
+        const y = 80 + layer * ((height - 160) / Math.max(maxLayer, 1));
+        const spacing = width / (layerNodes.length + 1);
+
+        layerNodes.forEach((nodeId, index) => {
+          positions.set(nodeId, {
+            x: spacing * (index + 1),
+            y,
+          });
+        });
+      }
+
+      return {positions, height};
+    }
+
+    function renderGraph(graph) {
+      const graphContainer = document.getElementById("gene-set-graph");
+      const meta = document.getElementById("graph-meta");
+      const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+      const edges = Array.isArray(graph.edges) ? graph.edges : [];
+      meta.textContent = `${nodes.length} nodes, ${edges.length} edges`;
+
+      if (nodes.length === 0 || edges.length === 0) {
+        graphContainer.className = "graph-empty";
+        graphContainer.textContent = "No provenance graph is available for this gene set.";
+        return;
+      }
+
+      const nodeIds = new Set(nodes.map((node) => node.id));
+      const layoutGraph = buildTopDownGraph(edges, nodeIds);
+      graphContainer.style.height = `${Math.min(Math.max(layoutGraph.height, 520), 1200)}px`;
+
+      const elements = nodes.map((node) => ({
+        data: {
+          id: node.id,
+          label: labelForNode(node),
+          dapperClass: node.dapper_class || "Unknown",
+        },
+        position: layoutGraph.positions.get(node.id),
+      }));
+
+      for (const edge of edges) {
+        const {source, target} = visualEdge(edge);
+        elements.push({
+          data: {
+            id: edge.id,
+            source,
+            target,
+          },
+        });
+      }
+
+      cytoscape({
+        container: graphContainer,
+        elements,
+        style: [
+          {
+            selector: "node",
+            style: {
+              "background-color": "#0e6b63",
+              "border-width": 2,
+              "border-color": "#094842",
+              "color": "#111",
+              "label": "data(label)",
+              "font-size": 9,
+              "text-wrap": "wrap",
+              "text-max-width": 140,
+              "text-valign": "bottom",
+              "text-margin-y": 10,
+              "width": 20,
+              "height": 20,
+            },
+          },
+          {
+            selector: 'node[dapperClass = "Activity"]',
+            style: {
+              "background-color": "#d17b0f",
+              "border-color": "#9c5704",
+              "shape": "round-rectangle",
+              "width": 28,
+              "height": 28,
+            },
+          },
+          {
+            selector: 'node[dapperClass = "GeneSet"]',
+            style: {
+              "background-color": "#59603a",
+              "border-color": "#3c4126",
+              "shape": "ellipse",
+            },
+          },
+          {
+            selector: "edge",
+            style: {
+              "width": 2,
+              "line-color": "#8b8a83",
+              "target-arrow-color": "#8b8a83",
+              "target-arrow-shape": "triangle",
+              "curve-style": "taxi",
+              "taxi-direction": "downward",
+              "taxi-turn": 24,
+            },
+          },
+        ],
+        layout: {
+          name: "preset",
+          fit: true,
+          padding: 48,
+        },
+        wheelSensitivity: 0.25,
+      });
+    }
+
+    renderGraph(geneSetGraph);
   </script>
 </body>
 </html>

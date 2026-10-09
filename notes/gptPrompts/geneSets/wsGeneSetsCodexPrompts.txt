@@ -1,7 +1,20 @@
 
+TBD - move the current home page to /home/bottom_line/
+TBD - add /home/gene_set, that lists gene set collections
+TBD - make / just two links to bottom-line and geneset 
+TBD - add /gene_set_collection that lists gene sets for the collection 
 
 
 20261008 - gene sets web page 
+modify the /gene_set/details/id=<input_geneset_id> web page that takes in the input trait 
+add in a graph element similar to the one the bottom-line details page
+insert it below the pipeline_type element data 
+build the graph using the 'used_edges' and 'was_generated_by_edges' in prov_document.document_text 
+that is joined to the artifact by prov_artifact.document_id
+put the database access logic in the python-flask-server/db_utils.py script 
+let me know if there are any concerns or issues before doing anything
+
+
 make sure the whole application only uses the provenance_db.sqlite which has now been updated to include gene sets
 
 
