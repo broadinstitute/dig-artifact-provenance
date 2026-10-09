@@ -1,5 +1,17 @@
 
 
+20261009 - upload all gene set provenance 
+python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
+--in_s3_bucket s3://dig-gene-set-data/v2.0_dapper-0.2.0-a1/ \
+--in_sqlite_db python-flask-server/data/provenance_ingest_db.sqlite \
+--in_log_file logs/20261009gene_set_provenance_ingest_extractor_only.log
+
+
+
+
+
+
+
 20261002 - count traits missing
 python3 src/python/traits/update_database_traits_from_kpn_file.py \
 --in_database python-flask-server/data/provenance_db.sqlite \
