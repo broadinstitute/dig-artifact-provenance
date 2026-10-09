@@ -1,7 +1,75 @@
 
 
 
+20261009 - troubleshoot the gene set graph
+looking at the graph of the geneset details page, for the example below I see only 2 edges and 3 nodes 
+but the yaml indicates more edges 
+
+used_edges:
+- subject: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+  predicate: prov:used
+  object: dapper:File.mwUMwST4IK-cxipJmuPCmhvTvwuqLc8u
+  edge_role: data_input
+- subject: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+  predicate: prov:used
+  object: dapper:File.LKK9YhhOeopiL2M7p2pXyDIRfmbB089k
+  edge_role: data_input
+- subject: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+  predicate: prov:used
+  object: dapper:File.KIybuKCAdMTr4-vYF8OOCqzmpG9dTTm1
+  edge_role: data_input
+- subject: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+  predicate: prov:used
+  object: dapper:File.wHooitR5Ia7C0fsrmgiiSvJYQz4yvO6X
+  edge_role: data_input
+- subject: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+  predicate: prov:used
+  object: dapper:File.1zXqo8YvNrIfJeatfEIY5pVtb46DiMPF
+  edge_role: data_input
+- subject: dapper:Activity.kcHPFR9uT543vHUrtPfmC9iSLpr20ip6
+  predicate: prov:used
+  object: dapper:C2M2File.G7ArTaNeQnQrHl3PlPZWZapTmc_JUdAH
+  edge_role: data_input
+was_generated_by_edges:
+- subject: dapper:File.1zXqo8YvNrIfJeatfEIY5pVtb46DiMPF
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+- subject: dapper:File.0-wEAbBWymobQEJOdYhn5fUEDnG7EzQr
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+- subject: dapper:File.jBWXq9Kbjgfd4PRnkvAWn2-seE-Lu52u
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
+- subject: dapper:GeneSetCollection.ijjpVTifkLTk54AYl9MLQnDOSMiciVEY
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:C2M2File.G7ArTaNeQnQrHl3PlPZWZapTmc_JUdAH
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:File.kGSj2-L6qpOEXMWZ7qwiFFufMoWgLfGX
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:File.m8Vzqfi09b1da03T6pU0yybwdNMcUJCB
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:File.a-Wwt3tJ95AGmOzo-KPa3xplc5LvPxen
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:File.DvVk7-MTu3H279wCiGCUDMieIB6Qhwl-
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.xNXG2-HxZ61y7RAKYzVMK4Og2Q-vzMY0
+- subject: dapper:File.ME0BRQzNfayTqyhXotTCcp3VEvOsrA4j
+  predicate: prov:wasGeneratedBy
+  object: dapper:Activity.kcHPFR9uT543vHUrtPfmC9iSLpr20ip6
+make sure any changes do not impact the bottom-line details display 
+let me know if there are any concerns or issues
+
+
 20261009 - add link to gene set provenance file 
+modify the /gene_set/details/id=<input_geneset_id> web page 
+so that the /gene_set/provenance/id=<input_document_id> opens in a new web window
+let me know if there are any concerns or issues
+
 modify the /gene_set/details/id=<input_geneset_id> web page 
 add a link from the document_id to a /gene_set/provenance/id=<input_document_id> 
 web page that will display the prov_document.document_text field for the matching document_id

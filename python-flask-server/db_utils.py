@@ -385,18 +385,44 @@ def build_gene_set_graph(gene_set_id: str, document_text: str | None) -> dict[st
 
     used_edges = parse_yaml_section(document_text, "used_edges")
     generated_edges = parse_yaml_section(document_text, "was_generated_by_edges")
-    matching_generated_edges = [
-        edge
+    generated_edges_by_subject = {
+        str(edge["subject"]): edge
         for edge in generated_edges
-        if isinstance(edge, dict) and edge.get("subject") == gene_set_id and edge.get("object")
-    ]
+        if isinstance(edge, dict) and edge.get("subject") and edge.get("object")
+    }
+    generated_edges_by_activity: dict[str, list[dict]] = {}
+    for edge in generated_edges:
+        if not isinstance(edge, dict) or not edge.get("subject") or not edge.get("object"):
+            continue
+        generated_edges_by_activity.setdefault(str(edge["object"]), []).append(edge)
 
-    activity_ids = {str(edge["object"]) for edge in matching_generated_edges}
+    used_edges_by_activity: dict[str, list[dict]] = {}
+    for edge in used_edges:
+        if not isinstance(edge, dict) or not edge.get("subject") or not edge.get("object"):
+            continue
+        used_edges_by_activity.setdefault(str(edge["subject"]), []).append(edge)
+
+    graph_edges: list[dict] = []
+    graph_edge_keys: set[tuple[str, str, str | None]] = set()
+    activity_ids: set[str] = set()
+
+    def add_graph_edge(edge: dict) -> None:
+        edge_key = (str(edge["subject"]), str(edge["object"]), edge.get("predicate"))
+        if edge_key in graph_edge_keys:
+            return
+        graph_edge_keys.add(edge_key)
+        graph_edges.append(edge)
+
+    matching_generated_edge = generated_edges_by_subject.get(gene_set_id)
+    if matching_generated_edge is not None:
+        add_graph_edge(matching_generated_edge)
+        activity_ids.add(str(matching_generated_edge["object"]))
+
     if gene_set.get("was_generated_by"):
         activity_id = str(gene_set["was_generated_by"])
         activity_ids.add(activity_id)
-        if not any(edge.get("object") == activity_id for edge in matching_generated_edges):
-            matching_generated_edges.append(
+        if matching_generated_edge is None:
+            add_graph_edge(
                 {
                     "subject": gene_set_id,
                     "predicate": "prov:wasGeneratedBy",
@@ -404,24 +430,34 @@ def build_gene_set_graph(gene_set_id: str, document_text: str | None) -> dict[st
                 }
             )
 
-    matching_used_edges = [
-        edge
-        for edge in used_edges
-        if isinstance(edge, dict) and edge.get("subject") in activity_ids and edge.get("object")
-    ]
-    file_ids = {str(edge["object"]) for edge in matching_used_edges}
+    traversed_activity_ids: set[str] = set()
+    pending_activity_ids = list(activity_ids)
+    while pending_activity_ids:
+        activity_id = pending_activity_ids.pop(0)
+        if activity_id in traversed_activity_ids:
+            continue
+        traversed_activity_ids.add(activity_id)
 
-    nodes = [
-        normalize_gene_set_graph_node(gene_set, gene_set_id, "GeneSet", "gene_sets"),
-    ]
-    for activity_id in sorted(activity_ids):
-        activity = extract_yaml_item_by_id(document_text, "activities", activity_id) or {"id": activity_id}
-        nodes.append(normalize_gene_set_graph_node(activity, activity_id, "Activity", "activities"))
-    for file_id in sorted(file_ids):
-        file_node = extract_yaml_item_by_id(document_text, "files", file_id) or {"id": file_id}
-        nodes.append(normalize_gene_set_graph_node(file_node, file_id, "File", "files"))
+        for edge in generated_edges_by_activity.get(activity_id, []):
+            add_graph_edge(edge)
 
-    graph_edges = matching_generated_edges + matching_used_edges
+        for edge in used_edges_by_activity.get(activity_id, []):
+            add_graph_edge(edge)
+            upstream_generated_edge = generated_edges_by_subject.get(str(edge["object"]))
+            if upstream_generated_edge is None:
+                continue
+            add_graph_edge(upstream_generated_edge)
+            upstream_activity_id = str(upstream_generated_edge["object"])
+            if upstream_activity_id not in traversed_activity_ids:
+                activity_ids.add(upstream_activity_id)
+                pending_activity_ids.append(upstream_activity_id)
+
+    node_ids = {gene_set_id}
+    for edge in graph_edges:
+        node_ids.add(str(edge["subject"]))
+        node_ids.add(str(edge["object"]))
+
+    nodes = [gene_set_graph_node_for_id(document_text, node_id, gene_set if node_id == gene_set_id else None) for node_id in sorted(node_ids)]
     edges = [
         {
             "id": f"{edge.get('predicate', 'edge')}-{index}-{edge['subject']}-{edge['object']}",
@@ -434,6 +470,60 @@ def build_gene_set_graph(gene_set_id: str, document_text: str | None) -> dict[st
     ]
 
     return {"nodes": nodes, "edges": edges}
+
+
+def gene_set_graph_node_for_id(document_text: str, node_id: str, known_node: dict | None = None) -> dict[str, str | None]:
+    if known_node is not None:
+        return normalize_gene_set_graph_node(known_node, node_id, dapper_class_for_id(node_id), node_group_for_id(node_id))
+
+    for section_name in ("activities", "files", "gene_sets", "gene_set_collections"):
+        node = extract_yaml_item_by_id(document_text, section_name, node_id)
+        if node is not None:
+            return normalize_gene_set_graph_node(node, node_id, dapper_class_for_section(section_name, node_id), section_name)
+
+    return {
+        "id": node_id,
+        "name": node_id,
+        "description": None,
+        "dapper_class": dapper_class_for_id(node_id),
+        "node_group": node_group_for_id(node_id),
+    }
+
+
+def dapper_class_for_section(section_name: str, node_id: str) -> str:
+    if section_name == "activities":
+        return "Activity"
+    if section_name == "gene_sets":
+        return "GeneSet"
+    if section_name == "gene_set_collections":
+        return "GeneSetCollection"
+    return dapper_class_for_id(node_id)
+
+
+def dapper_class_for_id(node_id: str) -> str:
+    if node_id.startswith("dapper:Activity."):
+        return "Activity"
+    if node_id.startswith("dapper:GeneSetCollection."):
+        return "GeneSetCollection"
+    if node_id.startswith("dapper:GeneSet."):
+        return "GeneSet"
+    if node_id.startswith("dapper:C2M2File."):
+        return "C2M2File"
+    if node_id.startswith("dapper:File."):
+        return "File"
+    return "Unknown"
+
+
+def node_group_for_id(node_id: str) -> str:
+    if node_id.startswith("dapper:Activity."):
+        return "activities"
+    if node_id.startswith("dapper:GeneSetCollection."):
+        return "gene_set_collections"
+    if node_id.startswith("dapper:GeneSet."):
+        return "gene_sets"
+    if node_id.startswith("dapper:C2M2File.") or node_id.startswith("dapper:File."):
+        return "files"
+    return "unknown"
 
 
 def normalize_gene_set_graph_node(

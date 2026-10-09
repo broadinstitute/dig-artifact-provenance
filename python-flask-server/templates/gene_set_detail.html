@@ -147,6 +147,18 @@
       border-radius: 50%;
     }
 
+    .legend-collection {
+      background: #225f9d;
+      border-color: #153f68;
+      transform: rotate(45deg);
+    }
+
+    .legend-c2m2 {
+      background: #7b4c88;
+      border-color: #573160;
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    }
+
     .graph-empty {
       padding: 14px 16px;
       color: var(--muted);
@@ -190,7 +202,9 @@
             <div class="graph-meta" id="graph-meta"></div>
             <div class="graph-legend">
               <span class="legend-item"><span class="legend-shape legend-file"></span>File input</span>
+              <span class="legend-item"><span class="legend-shape legend-c2m2"></span>C2M2 file</span>
               <span class="legend-item"><span class="legend-shape legend-activity"></span>Process activity</span>
+              <span class="legend-item"><span class="legend-shape legend-collection"></span>Gene set collection</span>
               <span class="legend-item"><span class="legend-shape legend-gene-set"></span>Gene set output</span>
             </div>
             <div id="gene-set-graph"></div>
@@ -401,6 +415,22 @@
               "background-color": "#59603a",
               "border-color": "#3c4126",
               "shape": "ellipse",
+            },
+          },
+          {
+            selector: 'node[dapperClass = "GeneSetCollection"]',
+            style: {
+              "background-color": "#225f9d",
+              "border-color": "#153f68",
+              "shape": "diamond",
+            },
+          },
+          {
+            selector: 'node[dapperClass = "C2M2File"]',
+            style: {
+              "background-color": "#7b4c88",
+              "border-color": "#573160",
+              "shape": "hexagon",
             },
           },
           {
