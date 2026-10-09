@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ gene_set.name if gene_set else "Gene Set Detail" }}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3efe5;
+      --panel: #fffdf7;
+      --ink: #1c1a16;
+      --muted: #6b6255;
+      --accent: #0e6b63;
+      --border: #d7cfbf;
+      --code: #f6f1e4;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: linear-gradient(180deg, #ede5d4 0%, var(--bg) 42%, #f7f4ec 100%);
+      color: var(--ink);
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .panel {
+      background: rgba(255, 253, 247, 0.94);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 14px 30px rgba(28, 26, 22, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      line-height: 1.05;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .error {
+      color: #a12626;
+      margin: 16px 0 0;
+    }
+
+    .field-block + .field-block {
+      margin-top: 18px;
+    }
+
+    .field-label {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .field-value {
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
+
+    <section class="panel">
+      <h1>{{ gene_set.name if gene_set else "Gene Set Detail" }}</h1>
+      <div class="muted">Gene set details from the artifact database.</div>
+
+      {% if error %}
+        <div class="error">{{ error }}</div>
+      {% elif gene_set %}
+        <div class="field-block">
+          <div class="field-label">id</div>
+          <div class="field-value">{{ gene_set.id }}</div>
+        </div>
+        <div class="field-block">
+          <div class="field-label">pipeline_type</div>
+          <div class="field-value">{{ gene_set.pipeline_type }}</div>
+        </div>
+        <div class="field-block">
+          <div class="field-label">pipeline_id</div>
+          <div class="field-value">{{ gene_set.pipeline_id }}</div>
+        </div>
+        <div class="field-block">
+          <div class="field-label">document_id</div>
+          <div class="field-value">{{ gene_set.document_id }}</div>
+        </div>
+        {% if gene_set.description %}
+          <div class="field-block">
+            <div class="field-label">description</div>
+            <div class="field-value">{{ gene_set.description }}</div>
+          </div>
+        {% endif %}
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+    function appRootPath() {
+      const routeMarkers = new Set(["artifact", "bottom_line", "gene_set", "ws", "get_provenance", "list", "traits", "drs"]);
+      const parts = window.location.pathname.split("/").filter(Boolean);
+      const markerIndex = parts.findIndex((part) => routeMarkers.has(part));
+
+      if (markerIndex >= 0) {
+        const prefix = parts.slice(0, markerIndex).join("/");
+        return prefix ? `/${prefix}/` : "/";
+      }
+
+      if (window.location.pathname === "/" || window.location.pathname.endsWith("/")) {
+        return window.location.pathname;
+      }
+
+      return `${window.location.pathname}/`;
+    }
+
+    function appUrl(route) {
+      return new URL(route.replace(/^\/+/, ""), `${window.location.origin}${appRootPath()}`).toString();
+    }
+
+    for (const link of document.querySelectorAll("[data-app-route]")) {
+      link.href = appUrl(link.dataset.appRoute || "");
+    }
+  </script>
+</body>
+</html>

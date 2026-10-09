@@ -5,7 +5,7 @@ Run from the repository root:
 
     python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
       --in_s3_bucket s3://dig-gene-set-data/marc-test/ \
-      --in_sqlite_db python-flask-server/data/provenance_test_db.sqlite \
+      --in_sqlite_db python-flask-server/data/provenance_db.sqlite \
       --in_log_file logs/gene_set_provenance_ingest.log
 
 Required arguments:

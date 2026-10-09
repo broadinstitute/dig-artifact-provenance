@@ -13,6 +13,7 @@ from flask import Flask, jsonify, redirect, render_template, request
 
 from db_utils import (
     DatabaseError,
+    get_gene_set_details_by_id,
     get_provenance_by_id,
     get_trait_by_legacy_id,
     list_artifacts,
@@ -51,6 +52,7 @@ def configure_logging(log_file: Path) -> None:
 def create_app() -> Flask:
     app = Flask(__name__)
     database_file = Path(os.environ.get("WS_PROVENANCE_DB", str(DEFAULT_DATABASE))).expanduser().resolve()
+    # database_file = DEFAULT_DATABASE.resolve()
     log_file = Path(os.environ.get("WS_PROVENANCE_LOG", str(DEFAULT_LOG_FILE))).expanduser().resolve()
 
     configure_logging(log_file)
@@ -74,6 +76,37 @@ def create_app() -> Flask:
     @app.get("/artifact/<path:artifact_id>")
     def artifact_detail(artifact_id: str):
         return render_template("artifact_detail.html", artifact_id=artifact_id)
+
+    @app.get("/gene_set/details/id=<path:input_geneset_id>")
+    def gene_set_detail(input_geneset_id: str):
+        gene_set_id = input_geneset_id.strip()
+        if not gene_set_id:
+            logging.error("Missing or empty gene set id path parameter in /gene_set/details")
+            return render_template(
+                "gene_set_detail.html",
+                gene_set=None,
+                error="Gene set id is required.",
+            ), 400
+
+        try:
+            gene_set = get_gene_set_details_by_id(app.config["DATABASE_FILE"], gene_set_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /gene_set/details for id %s: %s", gene_set_id, exc)
+            return render_template(
+                "gene_set_detail.html",
+                gene_set=None,
+                error=str(exc),
+            ), 500
+
+        if gene_set is None:
+            logging.error("Gene set id not found in /gene_set/details: %s", gene_set_id)
+            return render_template(
+                "gene_set_detail.html",
+                gene_set=None,
+                error=f"No gene set record found for id '{gene_set_id}'.",
+            ), 404
+
+        return render_template("gene_set_detail.html", gene_set=gene_set, error=None)
 
     @app.get("/bottom_line/<input_trait>/<input_ancestry>")
     def bottom_line_trait_ancestry(input_trait: str, input_ancestry: str):
@@ -222,6 +255,25 @@ def create_app() -> Flask:
             return jsonify({"error": "database_error", "message": str(exc)}), 500
 
         return jsonify(artifacts)
+
+    @app.get("/ws/gene_set/details/id=<path:input_geneset_id>")
+    def gene_set_detail_data(input_geneset_id: str):
+        gene_set_id = input_geneset_id.strip()
+        if not gene_set_id:
+            logging.error("Missing or empty gene set id path parameter in /ws/gene_set/details")
+            return jsonify({"error": "missing_id", "message": "Gene set id is required."}), 400
+
+        try:
+            gene_set = get_gene_set_details_by_id(app.config["DATABASE_FILE"], gene_set_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /ws/gene_set/details for id %s: %s", gene_set_id, exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        if gene_set is None:
+            logging.error("Gene set id not found in /ws/gene_set/details: %s", gene_set_id)
+            return jsonify({"error": "not_found", "message": f"No gene set record found for id '{gene_set_id}'."}), 404
+
+        return jsonify(gene_set)
 
     @app.get("/get_provenance")
     def get_provenance():

@@ -1,0 +1,20 @@
+
+
+
+20261008 - gene sets web page 
+make sure the whole application only uses the provenance_db.sqlite which has now been updated to include gene sets
+
+
+modify the flask web service application in python-flask-server
+add a /gene_set/details/id=<input_geneset_id> web page that takes in the input trait 
+and returns a gene set details page similar to the bottom-line details page
+except without the trait, ancestry or provenance elements
+the data should come from the prov_artifact table using the input id
+for the pipeline_type element, join the prov_pipeline.name after joing using the prov_artifact.pipeline_type
+for the name/title of the page, use the prov_artifact.name 
+also add a /ws/gene_set/details/id=<input_geneset_id> web service endpoint that does the same thing but returns the data in json format
+do not use the web service endpoint for the web page but share the code as possible
+put the database access logic in the python-flask-server/db_utils.py script 
+let me know if there are any concerns or issues
+
+

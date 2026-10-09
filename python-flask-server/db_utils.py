@@ -213,3 +213,35 @@ def get_provenance_by_id(database_file: Path, artifact_id: str) -> dict[str, str
             raise DatabaseError(f"Stored provenance for artifact {artifact_id} is not valid JSON: {exc}") from exc
 
     return artifact
+
+
+def get_gene_set_details_by_id(database_file: Path, gene_set_id: str) -> dict[str, str | None] | None:
+    if not gene_set_id:
+        raise DatabaseError("Gene set id must not be empty.")
+
+    try:
+        with connect_database(database_file) as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    artifact.id,
+                    artifact.name,
+                    COALESCE(pipeline.name, artifact.pipeline_type) AS pipeline_type,
+                    artifact.pipeline_type AS pipeline_id,
+                    artifact.document_id,
+                    artifact.description
+                FROM prov_artifact AS artifact
+                LEFT JOIN prov_pipeline AS pipeline
+                    ON artifact.pipeline_type = pipeline.pipeline_id
+                WHERE artifact.id = ?
+                    AND artifact.pipeline_type = ?
+                """,
+                (gene_set_id, "geneset"),
+            ).fetchone()
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to fetch gene set artifact {gene_set_id}: {exc}") from exc
+
+    if row is None:
+        return None
+
+    return {key: row[key] for key in row.keys()}
