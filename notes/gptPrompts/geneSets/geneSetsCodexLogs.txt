@@ -3,6 +3,56 @@
 
 
 
+• Implemented the provenance document link and streaming display.
+
+  Changes:
+
+  - On /gene_set/details/id=<input_geneset_id>:
+      - Renamed pipeline_type label to pipeline.
+      - Renamed document_id label to provenance.
+      - The provenance value is now a link to /gene_set/provenance/id=<input_document_id>.
+
+  - Added /gene_set/provenance/id=<input_document_id>.
+      - Streams prov_document.document_text as text/plain.
+      - Uses chunked SQLite reads so the app does not render or buffer the full ~100 MB YAML document in an HTML template.
+
+  - Added iter_gene_set_document_text_chunks() in python-flask-server/db_utils.py:106.
+
+  Verification passed:
+
+  - Python compile checks.
+  - Gene-set detail page returns 200.
+  - Provenance route returns 200.
+  - First streamed chunk is 1 MB and starts with YAML content.
+  - Missing provenance document returns 404.
+  - JS syntax check passed.
+
+  No concerns.
+  
+
+• Implemented the gene-set collection list flow.
+
+  Changes:
+
+  - /home/gene_set now hides prov_document.document_id and links each collection name to /gene_set/list/id=<collection_id>.
+  - Added /gene_set/list/id=<input_gene_collection_id>.
+  - The collection list page shows gene set names linked to /gene_set/details/id=<input_geneset_id>.
+  - Added DB helpers in python-flask-server/db_utils.py:77:
+      - get_gene_set_document_by_id
+      - list_gene_sets_by_document_id
+
+  - Added python-flask-server/templates/gene_set_list.html:1.
+
+  Verification passed:
+
+  - Python compile checks.
+  - /home/gene_set returns 200.
+  - /gene_set/list/id=<collection_id> returns 200.
+  - Missing collection returns 404.
+  - JS syntax checks passed.
+
+  No concerns.
+
 
 • Implemented the new home-page structure.
 

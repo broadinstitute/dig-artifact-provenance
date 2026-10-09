@@ -105,6 +105,56 @@ def get_gene_set_document_by_id(database_file: Path, document_id: str) -> dict[s
     return {key: row[key] for key in row.keys()}
 
 
+def iter_gene_set_document_text_chunks(
+    database_file: Path,
+    document_id: str,
+    chunk_size: int = 1024 * 1024,
+):
+    if not document_id:
+        raise DatabaseError("Gene-set collection id must not be empty.")
+    if chunk_size <= 0:
+        raise DatabaseError("Document text chunk size must be greater than zero.")
+
+    try:
+        connection = connect_database(database_file)
+        length_row = connection.execute(
+            """
+            SELECT LENGTH(document_text) AS document_length
+            FROM prov_document
+            WHERE document_id = ?
+                AND pipeline_type = ?
+            """,
+            (document_id, "geneset"),
+        ).fetchone()
+
+        if length_row is None:
+            raise DatabaseError(f"No gene-set provenance document found for id {document_id}.")
+
+        document_length = int(length_row["document_length"] or 0)
+        offset = 1
+        while offset <= document_length:
+            row = connection.execute(
+                """
+                SELECT SUBSTR(document_text, ?, ?) AS document_chunk
+                FROM prov_document
+                WHERE document_id = ?
+                    AND pipeline_type = ?
+                """,
+                (offset, chunk_size, document_id, "geneset"),
+            ).fetchone()
+            if row is None:
+                break
+            yield row["document_chunk"] or ""
+            offset += chunk_size
+    except sqlite3.Error as exc:
+        raise DatabaseError(f"Failed to stream gene-set provenance document {document_id}: {exc}") from exc
+    finally:
+        try:
+            connection.close()
+        except UnboundLocalError:
+            pass
+
+
 def list_gene_sets_by_document_id(database_file: Path, document_id: str) -> list[dict[str, str | None]]:
     if not document_id:
         raise DatabaseError("Gene-set collection id must not be empty.")

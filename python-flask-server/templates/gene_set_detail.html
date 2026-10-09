@@ -85,6 +85,15 @@
       white-space: pre-wrap;
     }
 
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
     .graph-shell {
       background: var(--code);
       border: 1px solid var(--border);
@@ -172,7 +181,7 @@
           <div class="field-value">{{ gene_set.id }}</div>
         </div>
         <div class="field-block">
-          <div class="field-label">pipeline_type</div>
+          <div class="field-label">pipeline</div>
           <div class="field-value">{{ gene_set.pipeline_type }}</div>
         </div>
         <div class="field-block">
@@ -192,8 +201,12 @@
           <div class="field-value">{{ gene_set.pipeline_id }}</div>
         </div>
         <div class="field-block">
-          <div class="field-label">document_id</div>
-          <div class="field-value">{{ gene_set.document_id }}</div>
+          <div class="field-label">provenance</div>
+          <div class="field-value">
+            <a href="#" data-app-route="gene_set/provenance/id={{ gene_set.document_id|urlencode }}">
+              {{ gene_set.document_id }}
+            </a>
+          </div>
         </div>
         {% if gene_set.description %}
           <div class="field-block">

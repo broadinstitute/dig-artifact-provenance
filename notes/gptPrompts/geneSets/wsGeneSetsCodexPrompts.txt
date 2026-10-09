@@ -1,6 +1,18 @@
 
 
 
+20261009 - add link to gene set provenance file 
+modify the /gene_set/details/id=<input_geneset_id> web page 
+add a link from the document_id to a /gene_set/provenance/id=<input_document_id> 
+web page that will display the prov_document.document_text field for the matching document_id
+keep in mind that the document_text can be close to 100 megabytes in size
+put the database access logic in the python-flask-server/db_utils.py script 
+also modify the 'document_id' element header to 'provenance'
+and the 'pipeline_type' element header to 'pipeline'
+let me know if there are any concerns or issues
+
+
+
 20281009 - make new home page
 TBD - add /gene_set_collection that lists gene sets for the collection 
 modify the /home/gene_set page, remove the prov_document.id from the element listings

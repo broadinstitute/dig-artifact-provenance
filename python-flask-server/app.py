@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, Response, jsonify, redirect, render_template, request, stream_with_context
 
 from db_utils import (
     DatabaseError,
@@ -17,6 +17,7 @@ from db_utils import (
     get_gene_set_document_by_id,
     get_provenance_by_id,
     get_trait_by_legacy_id,
+    iter_gene_set_document_text_chunks,
     list_artifacts,
     list_bottom_line_by_trait,
     list_gene_set_documents,
@@ -158,6 +159,31 @@ def create_app() -> Flask:
             ), 404
 
         return render_template("gene_set_list.html", document=document, gene_sets=gene_sets, error=None)
+
+    @app.get("/gene_set/provenance/id=<path:input_document_id>")
+    def gene_set_provenance_document(input_document_id: str):
+        document_id = input_document_id.strip()
+        if not document_id:
+            logging.error("Missing or empty document id path parameter in /gene_set/provenance")
+            return jsonify({"error": "missing_id", "message": "Gene set document id is required."}), 400
+
+        try:
+            document = get_gene_set_document_by_id(app.config["DATABASE_FILE"], document_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /gene_set/provenance for id %s: %s", document_id, exc)
+            return jsonify({"error": "database_error", "message": str(exc)}), 500
+
+        if document is None:
+            logging.error("Gene set document id not found in /gene_set/provenance: %s", document_id)
+            return jsonify({"error": "not_found", "message": f"No gene set provenance document found for id '{document_id}'."}), 404
+
+        return Response(
+            stream_with_context(
+                iter_gene_set_document_text_chunks(app.config["DATABASE_FILE"], document_id)
+            ),
+            content_type="text/plain; charset=utf-8",
+            headers={"Content-Disposition": "inline"},
+        )
 
     @app.get("/bottom_line/<input_trait>/<input_ancestry>")
     def bottom_line_trait_ancestry(input_trait: str, input_ancestry: str):
