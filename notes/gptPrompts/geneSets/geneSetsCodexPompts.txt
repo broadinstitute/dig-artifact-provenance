@@ -4,6 +4,21 @@
 TBD - add max number file to read 
 
 
+20261009 - speed up reading of yaml files and processing
+proceed with the batch writes, keeping a transaction per batch
+add in an optional --num_for_batch that defaults to 30 and will indicate the process batch size 
+let me know if there are any concerns or issues
+
+
+would processing the yaml files into the database as each is read increase speed
+or at least in batches of 50
+
+analyze the python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
+and determine why it takes over an hour to read and process thousands of ymal files, some of which are close to 100 MB
+do not change anything but suggest refactoring
+
+
+
 20261008 - only use extractor dapper files 
 update the python script src/python/gene_set/ingest_gene_set_prov_from_s3.py
 so that only the yaml files in the s3 bucket in a directory named 'extractor' or one of sub directories gets parsed for loading

@@ -6,7 +6,8 @@ Run from the repository root:
     python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
       --in_s3_bucket s3://dig-gene-set-data/marc-test/ \
       --in_sqlite_db python-flask-server/data/provenance_db.sqlite \
-      --in_log_file logs/gene_set_provenance_ingest.log
+      --in_log_file logs/gene_set_provenance_ingest.log \
+      --num_for_batch 30
 
 Required arguments:
 
@@ -20,6 +21,8 @@ Optional arguments:
 - ``--in_prov_file_name``: provenance YAML file basename to search for.
   Default: ``geneset.provenance.dapper.yaml``.
   Only exact filename matches under an ``extractor`` directory segment are loaded.
+- ``--num_for_batch``: number of provenance files to process per SQLite
+  transaction batch. Default: ``30``.
 """
 
 from __future__ import annotations
@@ -104,6 +107,12 @@ def parse_args() -> argparse.Namespace:
         "--in_prov_file_name",
         default="geneset.provenance.dapper.yaml",
         help="Provenance YAML basename to search for. Default: geneset.provenance.dapper.yaml.",
+    )
+    parser.add_argument(
+        "--num_for_batch",
+        type=int,
+        default=30,
+        help="Number of provenance files to process per SQLite transaction batch. Default: 30.",
     )
     return parser.parse_args()
 
@@ -326,29 +335,107 @@ def existing_ids(connection: sqlite3.Connection, table_name: str, id_column: str
     }
 
 
+def append_insert_rows(
+    documents: list[DocumentRow],
+    artifacts: list[ArtifactRow],
+    existing_document_ids: set[str],
+    existing_artifact_ids: set[str],
+    inserted_document_ids: set[str],
+    inserted_artifact_ids: set[str],
+    skipped_document_ids: set[str],
+    document_rows: list[tuple[str, str, str, str, str | None]],
+    artifact_rows: list[tuple[str, str, str, str, str, str, str]],
+) -> tuple[int, int]:
+    for document in documents:
+        if document.document_id in existing_document_ids or document.document_id in inserted_document_ids:
+            skipped_document_ids.add(document.document_id)
+            logging.error(
+                "Skipping duplicate gene set collection id=%s name=%r",
+                document.document_id,
+                document.name,
+            )
+            continue
+
+        inserted_document_ids.add(document.document_id)
+        document_rows.append(
+            (
+                document.document_id,
+                PIPELINE_TYPE,
+                document.name,
+                document.document_text,
+                document.description,
+            )
+        )
+
+    for artifact in artifacts:
+        if artifact.document_id in skipped_document_ids:
+            continue
+        if artifact.artifact_id in existing_artifact_ids or artifact.artifact_id in inserted_artifact_ids:
+            logging.error(
+                "Skipping duplicate gene set id=%s name=%r",
+                artifact.artifact_id,
+                artifact.name,
+            )
+            continue
+
+        inserted_artifact_ids.add(artifact.artifact_id)
+        artifact_rows.append(
+            (
+                artifact.artifact_id,
+                PIPELINE_TYPE,
+                NAN_VALUE,
+                artifact.name,
+                artifact.document_id,
+                NAN_VALUE,
+                NAN_VALUE,
+            )
+        )
+
+    return len(document_rows), len(artifact_rows)
+
+
+def insert_batch(
+    connection: sqlite3.Connection,
+    document_rows: list[tuple[str, str, str, str, str | None]],
+    artifact_rows: list[tuple[str, str, str, str, str, str, str]],
+) -> None:
+    with connection:
+        connection.executemany(
+            """
+            INSERT INTO prov_document
+                (document_id, pipeline_type, name, document_text, description)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            document_rows,
+        )
+        connection.executemany(
+            """
+            INSERT INTO prov_artifact
+                (id, pipeline_type, provenance, name, document_id, trait_legacy_id, ancestry_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            artifact_rows,
+        )
+
+
 def ingest_gene_set_provenance(
     s3_uri: str,
     database_file: Path,
     prov_file_name: str,
+    num_for_batch: int,
 ) -> tuple[int, int, int]:
     if not database_file.exists():
         raise FileNotFoundError(f"SQLite database file does not exist: {database_file}")
+    if num_for_batch <= 0:
+        raise ValueError("--num_for_batch must be a positive integer.")
 
     s3_files = list_matching_s3_files(s3_uri, prov_file_name)
     if not s3_files:
         raise RuntimeError(f"No files named {prov_file_name!r} found under {s3_uri}")
 
-    all_documents: list[DocumentRow] = []
-    all_artifacts: list[ArtifactRow] = []
     collection_logs: list[str] = []
-
-    for s3_file in s3_files:
-        logging.info("Reading provenance file from S3: %s", s3_file)
-        yaml_text = read_s3_text(s3_file)
-        documents, artifacts, logs = rows_from_yaml(s3_file, yaml_text)
-        all_documents.extend(documents)
-        all_artifacts.extend(artifacts)
-        collection_logs.extend(logs)
+    inserted_document_count = 0
+    inserted_artifact_count = 0
 
     with sqlite3.connect(database_file) as connection:
         validate_database_schema(connection)
@@ -359,79 +446,57 @@ def ingest_gene_set_provenance(
         skipped_document_ids: set[str] = set()
         document_rows: list[tuple[str, str, str, str, str | None]] = []
         artifact_rows: list[tuple[str, str, str, str, str, str, str]] = []
-
-        for document in all_documents:
-            if document.document_id in existing_document_ids or document.document_id in inserted_document_ids:
-                skipped_document_ids.add(document.document_id)
-                logging.error(
-                    "Skipping duplicate gene set collection id=%s name=%r",
-                    document.document_id,
-                    document.name,
-                )
-                continue
-
-            inserted_document_ids.add(document.document_id)
-            document_rows.append(
-                (
-                    document.document_id,
-                    PIPELINE_TYPE,
-                    document.name,
-                    document.document_text,
-                    document.description,
-                )
-            )
-
-        for artifact in all_artifacts:
-            if artifact.document_id in skipped_document_ids:
-                continue
-            if artifact.artifact_id in existing_artifact_ids or artifact.artifact_id in inserted_artifact_ids:
-                logging.error(
-                    "Skipping duplicate gene set id=%s name=%r",
-                    artifact.artifact_id,
-                    artifact.name,
-                )
-                continue
-
-            inserted_artifact_ids.add(artifact.artifact_id)
-            artifact_rows.append(
-                (
-                    artifact.artifact_id,
-                    PIPELINE_TYPE,
-                    NAN_VALUE,
-                    artifact.name,
-                    artifact.document_id,
-                    NAN_VALUE,
-                    NAN_VALUE,
-                )
-            )
-
         with connection:
             connection.execute("DELETE FROM prov_artifact WHERE pipeline_type = ?", (PIPELINE_TYPE,))
             connection.execute("DELETE FROM prov_document WHERE pipeline_type = ?", (PIPELINE_TYPE,))
-            connection.executemany(
-                """
-                INSERT INTO prov_document
-                    (document_id, pipeline_type, name, document_text, description)
-                VALUES (?, ?, ?, ?, ?)
-                """,
+
+        for file_index, s3_file in enumerate(s3_files, start=1):
+            logging.info("Reading provenance file from S3: %s", s3_file)
+            yaml_text = read_s3_text(s3_file)
+            documents, artifacts, logs = rows_from_yaml(s3_file, yaml_text)
+            collection_logs.extend(logs)
+            append_insert_rows(
+                documents,
+                artifacts,
+                existing_document_ids,
+                existing_artifact_ids,
+                inserted_document_ids,
+                inserted_artifact_ids,
+                skipped_document_ids,
                 document_rows,
-            )
-            connection.executemany(
-                """
-                INSERT INTO prov_artifact
-                    (id, pipeline_type, provenance, name, document_id, trait_legacy_id, ancestry_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
                 artifact_rows,
+            )
+
+            if file_index % num_for_batch == 0:
+                insert_batch(connection, document_rows, artifact_rows)
+                inserted_document_count += len(document_rows)
+                inserted_artifact_count += len(artifact_rows)
+                logging.info(
+                    "Inserted batch ending at file %s: %s documents, %s artifacts",
+                    file_index,
+                    len(document_rows),
+                    len(artifact_rows),
+                )
+                document_rows.clear()
+                artifact_rows.clear()
+
+        if document_rows or artifact_rows:
+            insert_batch(connection, document_rows, artifact_rows)
+            inserted_document_count += len(document_rows)
+            inserted_artifact_count += len(artifact_rows)
+            logging.info(
+                "Inserted final batch: %s documents, %s artifacts",
+                len(document_rows),
+                len(artifact_rows),
             )
 
     for message in collection_logs:
         logging.info(message)
     logging.info("S3 provenance files read: %s", len(s3_files))
-    logging.info("Gene set collections inserted: %s", len(document_rows))
-    logging.info("Gene set artifacts inserted: %s", len(artifact_rows))
+    logging.info("Gene set collections inserted: %s", inserted_document_count)
+    logging.info("Gene set artifacts inserted: %s", inserted_artifact_count)
 
-    return len(s3_files), len(document_rows), len(artifact_rows)
+    return len(s3_files), inserted_document_count, inserted_artifact_count
 
 
 def main() -> int:
@@ -445,6 +510,7 @@ def main() -> int:
             args.in_s3_bucket,
             database_file,
             args.in_prov_file_name,
+            args.num_for_batch,
         )
     except Exception as exc:
         logging.exception("Gene-set provenance ingest failed: %s", exc)

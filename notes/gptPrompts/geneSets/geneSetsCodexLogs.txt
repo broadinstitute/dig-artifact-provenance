@@ -2,6 +2,37 @@
 
 
 
+• The runtime is dominated by full-document download, full YAML parsing, and sequential processing. For thousands of files, especially 50-100 MB YAML files, the current design will naturally take a long time.
+
+  Main Bottlenecks
+
+  - read_s3_text() uses aws s3 cp ... - through subprocess.run(..., capture_output=True), so each S3 file is fully downloaded into memory before processing. This happens serially, one file at a time.
+  - load_yaml_document() parses the entire YAML document with PyYAML, including huge members arrays inside each gene set, even though the database only needs collection id/name/description and gene set id/name.
+  - collection_gene_set_ids() loops through all gene_sets for each collection. If a file has many collections and many gene sets, this becomes unnecessarily expensive.
+  - rows_from_yaml() stores the full yaml_text in every DocumentRow, then all rows are accumulated in all_documents / all_artifacts before any database write. For many large files, memory pressure will be high.
+  - SQLite insert of prov_document.document_text stores each large YAML blob directly in the database. Writing thousands of 100 MB documents means hundreds of GB of SQLite writes if the input is large enough.
+  - The script does no concurrency: S3 listing, S3 downloads, YAML parsing, and row extraction are all single-threaded/sequential.
+  - The script shells out to the AWS CLI for every file. Thousands of aws s3 cp subprocesses add overhead compared with using boto3 streaming or batched worker processes.
+
+  Recommended Refactor
+
+  - Replace full YAML parsing with targeted extraction. Parse only:
+      - gene_set_collections
+      - gene_sets fields needed for id, name, and in_gene_set_collection
+      - Avoid loading large members arrays if not needed.
+
+  - Use a streaming parser or targeted text/block parser instead of yaml.load() for full 100 MB documents. Current web code already uses a targeted parser pattern for large DAPPER docs.
+  - Process each S3 file independently and write its database rows immediately, instead of accumulating all documents/artifacts in memory.
+  - Use boto3 with streaming reads instead of spawning aws s3 cp per file.
+  - Add concurrency with a bounded worker pool for download/parse, then a single DB writer queue for SQLite.
+  - Consider storing large provenance YAML in S3 and only storing the S3 URI plus metadata in SQLite. Keeping 100 MB YAML blobs in SQLite will become a major storage and write-performance problem.
+  - If full YAML text must remain in SQLite, use batched commits and SQLite pragmas during ingest, such as journal_mode=WAL and synchronous=NORMAL, after confirming acceptable durability tradeoffs.
+
+  The biggest wins are: avoid full YAML parse, avoid storing huge YAML blobs repeatedly in memory, and parallelize S3 download/metadata extraction.
+  
+
+
+
 
 • Implemented the provenance document link and streaming display.
 
@@ -97,6 +128,8 @@
   - Detail page still omits trait, ancestry, and provenance fields.
 
   Concern addressed: parsing the full 84 MB YAML document per request was too slow, so I switched to targeted YAML section parsing with PyYAML for only the relevant blocks.
+
+
 
 
 
