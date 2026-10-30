@@ -1,10 +1,14 @@
 
 
+20261029 - fix for agents not being able to use the web service json
+I am tr
+
 
 20261009 - troubleshoot the gene set graph
 looking at the graph of the geneset details page, for the example below I see only 2 edges and 3 nodes 
 but the yaml indicates more edges 
-
+http://127.0.0.1:8080/gene_set/details/id=dapper%3AGeneSet.4kTx47Qa-fsvfkroFIV6mJx5Fzp-uwek
+the edges part of the provenance is below
 used_edges:
 - subject: dapper:Activity.RvZo_Z7esfOtsn976Yc8WQamH9p2w1vh
   predicate: prov:used

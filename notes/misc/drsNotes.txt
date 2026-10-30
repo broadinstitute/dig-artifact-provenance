@@ -1,0 +1,33 @@
+
+
+
+
+
+
+
+
+DRS costs for aws: 
+------------------
+
+
+I need to put up an ftp/http apploication server that provides read only data downloads of terabytes in files
+The options I am looking at using AWS hosting are:
+- a small 2 cpu EC2 instance with a 100 TB magnetic disk attached
+- a small ec2 EC2 instance that streams s3 stored data 
+- direct s3 downloads
+- downloads from other aws services like glacier 
+please estimate the costs for each options, breaking down network transmit costs, storage and ec2 instance costs and other potential costs 
+also suggest another cheaper method that I might not have thought of 
+let me know if there are any issues 
+
+
+Cost data:
+----------
+from PS: 
+- glacier $90/TB 
+- 32TB of for aggregator 
+- each open data release 2TB
+  - open data bucket 5TB
+- non intermediate data 
+  - varriant_raw
+  - open BL data 

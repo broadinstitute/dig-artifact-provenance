@@ -1,0 +1,47 @@
+
+
+
+- ask patrick
+  - does aggregator have versioning 
+
+  
+
+
+
+analyze the software in this directory and recommend the best way to create a provenance file for each 
+ideally, the all the provenance files ahould be created in a aws s3 version directory off of a central provenance files directory
+the provenance files should contain:
+- the process being run 
+- the date the process is run 
+- the input location and files if possible
+- the output location and files if possible
+- other files or scripts used as resources
+look for a way to centralize the change 
+
+
+
+
+
+
+## Recommendation
+
+Add provenance at the job execution boundary in dig-aggregator-core. All 13 method projects depend on that library and define work through Stage.sources, Stage.rules, and Stage.make. A shared hook can create one JSON record for each stage output that actually runs, without changing every method. The core repository describes shared execution and run tracking, but the exact hook needs to be confirmed against the deployed 0.3.9-SNAPSHOT source before implementation. Core repository (https://github.com/broadinstitute/dig-aggregator-core)
+
+Use a central layout such as:
+
+s3://dig-analysis-data/provenance-files/<data-version>/<method>/<stage>/<run-id>/<output-id>.json
+
+Here, <data-version> should be an explicit release or dataset version from configuration. <run-id> should be unique for every attempt, so reruns do not overwrite provenance. S3 bucket versioning can provide another layer of history, but it does not replace these directory names.
+
+Each record should include the process name, script and arguments, start and finish times in UTC, status, method and code commit, source S3 patterns, resolved input objects where available, and output S3 prefixes and objects. Write the final record after the job finishes; record failures too.
+
+Two limits matter:
+
+- The Scala source patterns identify triggering inputs, but scripts can read additional files directly. For example, GenesStage.scala (bioindex/src/main/scala/GenesStage.scala:12) declares a source, while genes.py (bioindex/src/main/resources/genes.py:15) reads and writes its actual S3 paths. Mark discovered file lists as such; do not present source patterns as a complete inventory.
+- The root run.sh (run.sh:1) is a useful rollout point, but methods can be run directly from their own directories. A wrapper change alone would miss those runs.
+
+I would implement this in two steps: first emit reliable stage and run records from the shared core, including input patterns and output prefixes; then add S3 object listing around execution and targeted declarations for scripts with hidden inputs or outputs. The existing built.sbt (intake/built.sbt:36) already captures a Git commit at build time, which can populate the code version field. No files were changed in this analysis.
+  Worked for 53s • 12:01 PM
+
+
+
