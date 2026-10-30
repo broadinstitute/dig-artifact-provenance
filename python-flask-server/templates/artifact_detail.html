@@ -209,10 +209,48 @@
     <a class="back-link" href="#" data-app-route="">&larr; Back to Artifact Provenance</a>
 
     <section class="panel">
-      <h1 id="title">Artifact Provenance</h1>
+      <h1 id="title">
+        {%- if artifact -%}
+          {%- if artifact.trait_name or artifact.trait_legacy_id -%}
+            {{ artifact.trait_name or artifact.trait_legacy_id }}{% if artifact.ancestry_name or artifact.ancestry_id %} / {{ artifact.ancestry_name or artifact.ancestry_id }}{% endif %}
+          {%- else -%}
+            {{ artifact.ancestry_name or artifact.ancestry_id or artifact.name or artifact_id }}
+          {%- endif -%}
+        {%- else -%}
+          Artifact Provenance
+        {%- endif -%}
+      </h1>
       <div class="muted">Database row details from the provenance service.</div>
-      <div class="error" id="error-box"></div>
-      <div id="detail-list"></div>
+      {% if artifact %}
+        {% if artifact.provenance is mapping %}
+          <p class="muted">
+            Provenance graph:
+            {{ artifact.provenance.get("activities", []) | length }} activities,
+            {{ artifact.provenance.get("datasets", []) | length }} datasets,
+            {{ artifact.provenance.get("c2m2_files", []) | length }} C2M2 files.
+          </p>
+        {% endif %}
+        <p><a href="{{ json_url }}">View full JSON record</a></p>
+      {% endif %}
+      <div class="error" id="error-box"{% if error %} style="display: block"{% endif %}>{{ error or "" }}</div>
+      <div id="detail-list">
+        {% if artifact %}
+          {% for key, value in artifact.items() %}
+            <section class="field-block">
+              <div class="field-label">{{ key }}</div>
+              <div class="field-value">
+                {% if key == "provenance" and value is mapping %}
+                  <pre>{{ value | tojson(indent=2) }}</pre>
+                {% elif value is none %}
+                  null
+                {% else %}
+                  {{ value }}
+                {% endif %}
+              </div>
+            </section>
+          {% endfor %}
+        {% endif %}
+      </div>
     </section>
   </main>
 
@@ -681,7 +719,9 @@
       }
     }
 
-    loadArtifact();
+    {% if artifact %}
+      loadArtifact();
+    {% endif %}
   </script>
 </body>
 </html>

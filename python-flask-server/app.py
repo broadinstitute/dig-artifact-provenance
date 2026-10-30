@@ -92,7 +92,26 @@ def create_app() -> Flask:
 
     @app.get("/artifact/<path:artifact_id>")
     def artifact_detail(artifact_id: str):
-        return render_template("artifact_detail.html", artifact_id=artifact_id)
+        try:
+            artifact = get_provenance_by_id(app.config["DATABASE_FILE"], artifact_id)
+        except DatabaseError as exc:
+            logging.error("Database error in /artifact for id %s: %s", artifact_id, exc)
+            return render_template(
+                "artifact_detail.html", artifact_id=artifact_id, artifact=None,
+                error="Unable to load the provenance record.",
+            ), 500
+
+        if artifact is None:
+            return render_template(
+                "artifact_detail.html", artifact_id=artifact_id, artifact=None,
+                error=f"No provenance record found for id '{artifact_id}'.",
+            ), 404
+
+        json_url = "../" * len(artifact_id.split("/")) + "get_provenance?id=" + quote(artifact_id, safe="")
+        return render_template(
+            "artifact_detail.html", artifact_id=artifact_id, artifact=artifact,
+            json_url=json_url, error=None,
+        )
 
     @app.get("/gene_set/details/id=<path:input_geneset_id>")
     def gene_set_detail(input_geneset_id: str):
