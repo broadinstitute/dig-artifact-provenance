@@ -1,0 +1,15 @@
+
+
+
+
+
+
+20261103 - analyze pigean 
+analyze the scala code in /Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/scr/main/scala 
+list out all the s3 directories per top level bucket used into a set of files at data/pigean/s3/
+also list out the final result bucket into a file at data/pigean/finalResult.txt
+do not make any code changes
+let me know if there are any issues
+
+
+
