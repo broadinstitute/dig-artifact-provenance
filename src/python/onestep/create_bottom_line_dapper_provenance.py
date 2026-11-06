@@ -9,7 +9,7 @@ Required arguments:
 
 - none
 
-Eaxmple:
+Example:
 
   python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
     --in-database /tmp/onestep_provenance_db.sqlite \
@@ -21,7 +21,7 @@ Eaxmple:
 
 Optional arguments and defaults:
 
-- ``--s3-listing-dir``: ``data/s3``
+- ``--s3-listing-dir``: ``data/bottom-line/s3``
 - ``--in-database``: ``data/database/provenance_db.sqlite``
 - ``--in-log-file``: ``logs/bottom-line-provenance.log``
 - ``--save-provenance-files``: disabled by default
@@ -31,7 +31,8 @@ Optional arguments and defaults:
   intermediate computed-id graph JSON to that path.
 - ``--max-endpoints``: not set by default; when provided, only builds the first
   N sorted open-data endpoint documents. Useful for one-endpoint lint tests.
-- ``-skip-dapper-lint`` skips the linter provenance check
+- ``--trait-registry``: ``data/traits/kpn_trait_registry_v002.tsv``
+- ``--skip-dapper-lint`` skips the linter provenance check
 
 This combines:
 
@@ -39,18 +40,19 @@ This combines:
 - ``src/python/individualsteps/create_bottom_line_dapper.py``
 - ``src/python/individualsteps/load_bottom_line_to_db.py``
 
-The generated graph uses DAPPER 0.1.0 computed identifiers from:
+The intermediate graph uses legacy DAPPER 0.1.0 identifiers from:
 
 - https://github.com/broadinstitute/dapper/releases/tag/0.1.0
 
-Each generated document uses the group-keyed DAPPER document shape expected by
-the DAPPER 0.1.0 linter:
+Each generated document uses the DAPPER 0.2.0 group-keyed document shape and
+re-mints node identifiers with the local 0.2.0 identity module:
 
     uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py <provenance_file_input>
 
-The emitted documents intentionally do not include application-only envelope
-fields such as ``graph`` or ``root_location_path`` because the DAPPER linter runs
-in closed mode and treats unknown top-level keys as errors.
+S3 prefixes are represented as Dataset locations. The published object is a
+File linked to the terminal Dataset; no C2M2 or DRS registration is asserted.
+The emitted documents omit application-only envelope fields because the DAPPER
+linter runs in closed mode and treats unknown top-level keys as errors.
 
 Before linting, the script mints DAPPER-ID-1 computed node identifiers by
 batch-importing the DAPPER identity module in one ``uv run`` process:
@@ -61,6 +63,7 @@ batch-importing the DAPPER identity module in one ``uv run`` process:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import logging
 import os
@@ -82,10 +85,6 @@ from create_bottom_line_dapper import (  # noqa: E402
     collect_provenance_subgraph,
     edge_target_map,
     filename_from_location_path,
-    make_activity_entry,
-    make_c2m2_file_entry,
-    make_dataset_entry,
-    make_drs_entry,
     make_edge_entry,
 )
 from create_bottom_line_graph import (  # noqa: E402
@@ -99,7 +98,7 @@ from load_bottom_line_to_db import (  # noqa: E402
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_S3_LISTING_DIR = REPO_ROOT / "data" / "s3"
+DEFAULT_S3_LISTING_DIR = REPO_ROOT / "data" / "bottom-line" / "s3"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "data" / "bottom-line-provenance"
 DEFAULT_GRAPH_OUTPUT = REPO_ROOT / "data" / "graph" / "provenance_graph.json"
 DEFAULT_DATABASE = REPO_ROOT / "data" / "database" / "provenance_db.sqlite"
@@ -107,6 +106,8 @@ DEFAULT_LOG_FILE = REPO_ROOT / "logs" / "bottom-line-provenance.log"
 DEFAULT_GRAPH_REFERENCE = "<in-memory bottom-line DAPPER graph>"
 DEFAULT_DAPPER_LINTER = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py")
 DEFAULT_DAPPER_IDENTITY = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py")
+DEFAULT_TRAIT_REGISTRY = REPO_ROOT / "data" / "traits" / "kpn_trait_registry_v002.tsv"
+METHODS_REPO_URL = "https://github.com/broadinstitute/dig-aggregator-methods"
 
 
 def compact_dict(data: dict) -> dict:
@@ -124,51 +125,77 @@ def final_dataset_id(root_node: dict) -> str:
     return f"bottom-line-result:{artifact}"
 
 
-def dapper_dataset_entry(record: dict, node_id: str) -> dict:
+def load_trait_ids(registry_file: Path) -> dict[str, str]:
+    with registry_file.open(encoding="utf-8", newline="") as stream:
+        rows = csv.DictReader(stream, delimiter="\t")
+        return {
+            row["legacy_phenotype_id"]: row["portal_id"]
+            for row in rows
+            if row.get("legacy_phenotype_id") and row.get("portal_id", "").startswith("KPN.TRAIT:")
+        }
+
+
+def source_description(node: dict) -> str:
+    parts = [str(node.get("label") or "")]
+    if node.get("inferred_from_code"):
+        parts.append(f"Source reconstruction: inferred from {node['inferred_from_code']}; execution is not confirmed.")
+    elif node.get("observed_from_listing"):
+        parts.append("Reported by the S3 listing snapshot; execution and object contents were not independently verified.")
+    context = [
+        f"{key}={node[key]}"
+        for key in ("phenotype", "ancestry", "dataset", "method", "rare")
+        if node.get(key) is not None
+    ]
+    if context:
+        parts.append("Source context: " + "; ".join(context) + ".")
+    return " ".join(parts)
+
+
+def scientific_context(node: dict, trait_ids: dict[str, str]) -> dict:
+    phenotype = node.get("phenotype")
+    return compact_dict({
+        "trait": trait_ids.get(str(phenotype)) if phenotype else None,
+        "ancestry": node.get("ancestry"),
+    })
+
+
+def dapper_dataset_entry(node: dict, node_id: str, trait_ids: dict[str, str]) -> dict:
     return compact_dict(
         {
             "id": node_id,
-            "name": record.get("name"),
+            "name": node.get("label"),
             "resource_type": "dataset",
-            "description": record.get("description"),
-            "access_level": record.get("access_level"),
+            "description": source_description(node),
+            "location": node.get("location_path"),
+            **scientific_context(node, trait_ids),
         }
     )
 
 
-def dapper_drs_object_entry(record: dict, node_id: str) -> dict:
+def dapper_file_entry(node: dict, node_id: str) -> dict:
+    location = str(node.get("location_path") or "")
     return compact_dict(
         {
             "id": node_id,
-            "name": record.get("published_filename") or record.get("description"),
-            "drs_id": record.get("drs_id"),
-            "self_uri": record.get("self_uri"),
-            "mime_type": record.get("mime_type"),
-            "access_methods": record.get("access_methods"),
+            "name": node.get("label"),
+            "description": source_description(node),
+            "filename": node.get("published_filename") or filename_from_location_path(location).removesuffix(".json"),
+            "location": location,
         }
     )
 
 
-def dapper_activity_entry(record: dict, node_id: str) -> dict:
+def dapper_activity_entry(node: dict, node_id: str, trait_ids: dict[str, str]) -> dict:
+    script_url = node.get("location_path")
     return compact_dict(
         {
             "id": node_id,
-            "name": record.get("name"),
-            "description": record.get("description"),
-            "activity_type": record.get("activity_type"),
-            "repo_url": record.get("repo_url"),
-        }
-    )
-
-
-def dapper_c2m2_file_entry(record: dict, node_id: str) -> dict:
-    return compact_dict(
-        {
-            "id": node_id,
-            "name": record.get("name"),
-            "description": record.get("description"),
-            "filename": record.get("filename"),
-            "local_id": record.get("local_id"),
+            "name": node.get("label"),
+            "description": source_description(node),
+            "activity_type": node.get("stage_name"),
+            "script_url": script_url,
+            "repo_url": METHODS_REPO_URL if str(script_url).startswith(METHODS_REPO_URL + "/") else None,
+            **scientific_context(node, trait_ids),
         }
     )
 
@@ -189,7 +216,6 @@ def relationship_group(relationship: str | None) -> str | None:
         "Used": "used_edges",
         "WasGeneratedBy": "was_generated_by_edges",
         "WasDerivedFrom": "was_derived_from_edges",
-        "HasDrsObject": "has_drs_object_edges",
     }.get(str(relationship))
 
 
@@ -250,6 +276,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--trait-registry",
+        default=str(DEFAULT_TRAIT_REGISTRY),
+        help=f"Legacy phenotype to KPN trait mapping. Default: {DEFAULT_TRAIT_REGISTRY}",
+    )
+    parser.add_argument(
         "--skip-dapper-lint",
         action="store_true",
         help="Skip running the DAPPER linter before loading/writing documents. Default: disabled.",
@@ -263,21 +294,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def make_terminal_dataset(root_node: dict, open_stage_id: str | None) -> dict:
+def make_terminal_dataset(root_node: dict, trait_ids: dict[str, str]) -> dict:
     location = str(root_node.get("location_path") or "")
     phenotype = root_node.get("phenotype")
     ancestry = root_node.get("ancestry")
     name_bits = [bit for bit in (phenotype, ancestry) if bit]
     label = " / ".join(str(bit) for bit in name_bits) or filename_from_location_path(location).removesuffix(".json")
-    dataset = {
+    return {
         "id": final_dataset_id(root_node),
         "name": f"Published open-data bottom-line result for {label}",
-        "version": "1",
         "resource_type": "dataset",
-        "description": f"Published open-data bottom-line endpoint at {location}",
-        "access_level": "public",
+        "description": f"Logical bottom-line dataset distributed as {filename_from_location_path(location).removesuffix('.json')}. "
+        "The publication lineage is reconstructed from S3 listing snapshots; execution and object contents were not independently verified.",
+        **scientific_context(root_node, trait_ids),
     }
-    return dataset
 
 
 def build_dapper_document(
@@ -285,37 +315,37 @@ def build_dapper_document(
     subgraph_nodes: list[dict],
     subgraph_edges: list[dict],
     generated_by_map: dict[str, list[str]],
+    trait_ids: dict[str, str],
 ) -> dict:
     id_map = {node["id"]: original_node_id(node) for node in subgraph_nodes}
-    root_drs_id = id_map[root_node["id"]]
+    root_file_id = id_map[root_node["id"]]
     open_stage_ids = generated_by_map.get(root_node["id"], [])
     open_stage_id = id_map.get(open_stage_ids[0]) if open_stage_ids else None
     terminal_dataset_id = final_dataset_id(root_node)
 
     document: dict[str, list[dict]] = {
         "activities": [],
-        "drs_objects": [],
+        "files": [],
         "datasets": [],
-        "c2m2_files": [],
         "used_edges": [],
         "was_generated_by_edges": [],
         "was_derived_from_edges": [],
-        "has_drs_object_edges": [],
+        "has_file_edges": [],
     }
 
     for node in subgraph_nodes:
         dapper_class = node.get("dapper_class")
         node_id = id_map[node["id"]]
         if dapper_class == "Dataset":
-            document["datasets"].append(dapper_dataset_entry(make_dataset_entry(node, generated_by_map), node_id))
+            document["datasets"].append(dapper_dataset_entry(node, node_id, trait_ids))
         elif dapper_class == "DrsObject":
-            document["drs_objects"].append(dapper_drs_object_entry(make_drs_entry(node, generated_by_map), node_id))
+            document["files"].append(dapper_file_entry(node, node_id))
         elif dapper_class == "Activity":
-            document["activities"].append(dapper_activity_entry(make_activity_entry(node), node_id))
+            document["activities"].append(dapper_activity_entry(node, node_id, trait_ids))
         elif dapper_class == "C2M2File":
-            document["c2m2_files"].append(dapper_c2m2_file_entry(make_c2m2_file_entry(node, generated_by_map), node_id))
+            document["datasets"].append(dapper_dataset_entry(node, node_id, trait_ids))
 
-    document["datasets"].append(make_terminal_dataset(root_node, open_stage_id))
+    document["datasets"].append(make_terminal_dataset(root_node, trait_ids))
     if open_stage_id:
         document["was_generated_by_edges"].append(
             {
@@ -324,22 +354,17 @@ def build_dapper_document(
                 "object": open_stage_id,
             }
         )
-    document["has_drs_object_edges"].append(
+    document["has_file_edges"].append(
         {
             "subject": terminal_dataset_id,
-            "predicate": "dapper:hasDrsObject",
-            "object": root_drs_id,
+            "predicate": "dapper:hasFile",
+            "object": root_file_id,
         }
     )
 
-    class_by_id = {node["id"]: node.get("dapper_class") for node in subgraph_nodes}
     for edge in subgraph_edges:
         group = relationship_group(edge.get("relationship"))
         if group is None:
-            continue
-        if edge.get("relationship") == "WasGeneratedBy" and class_by_id.get(edge.get("source")) == "DrsObject":
-            # The bottom-line profile models the published artifact as a Dataset
-            # with a DRS object, not as a DRS object generated directly.
             continue
         document[group].append(dapper_edge_entry(make_edge_entry(edge), id_map))
 
@@ -350,7 +375,9 @@ def build_documents_from_graph(
     graph: dict,
     graph_reference: str,
     max_endpoints: int | None = None,
+    trait_ids: dict[str, str] | None = None,
 ) -> list[tuple[str, dict]]:
+    trait_ids = trait_ids or {}
     nodes = {node["id"]: node for node in graph["nodes"]}
     edges = {edge["id"]: edge for edge in graph["edges"]}
     outgoing = build_outgoing_edges(edges.values())
@@ -372,7 +399,7 @@ def build_documents_from_graph(
         subgraph_node_ids, subgraph_edge_ids = collect_provenance_subgraph(root_node["id"], outgoing)
         subgraph_nodes = [nodes[node_id] for node_id in sorted(subgraph_node_ids)]
         subgraph_edges = [edges[edge_id] for edge_id in sorted(subgraph_edge_ids)]
-        document = build_dapper_document(root_node, subgraph_nodes, subgraph_edges, generated_by_map)
+        document = build_dapper_document(root_node, subgraph_nodes, subgraph_edges, generated_by_map, trait_ids)
 
         filename = filename_from_location_path(str(root_node.get("location_path", root_node["id"])))
         documents.append((filename, document))
@@ -649,6 +676,7 @@ def main() -> int:
     log_file = Path(args.in_log_file).expanduser().resolve()
     dapper_linter = Path(args.dapper_linter).expanduser().resolve()
     dapper_identity = Path(args.dapper_identity).expanduser().resolve()
+    trait_registry = Path(args.trait_registry).expanduser().resolve()
 
     graph, missing_messages = build_graph(listing_files(s3_listing_dir))
 
@@ -658,7 +686,9 @@ def main() -> int:
         out_graph_file.write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
         graph_reference = str(out_graph_file)
 
-    documents = build_documents_from_graph(graph, graph_reference, args.max_endpoints)
+    documents = build_documents_from_graph(
+        graph, graph_reference, args.max_endpoints, load_trait_ids(trait_registry)
+    )
     documents = mint_documents(documents, dapper_identity)
     print(f"Minted DAPPER-ID-1 identifiers for {len(documents)} provenance documents with {dapper_identity}")
 

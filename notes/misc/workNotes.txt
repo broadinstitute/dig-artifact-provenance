@@ -1,6 +1,9 @@
 
 
 
+20261106 - pyenv 
+ . ~/Energy/VirtualEnv/geneset_flask_312/bin/activate
+ 
 
 20260923
 - provenance_db.sqlite 1/10 smaller after adding trait/ancestry - unexpected size drop

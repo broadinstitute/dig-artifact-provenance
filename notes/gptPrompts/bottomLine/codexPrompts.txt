@@ -1,6 +1,6 @@
 
 
-THESE ARE THE CODEX PROMPTS FOR LOADING DATA, CREATING THE DATABASE 
+THESE ARE THE CODEX PROMPTS FOR CREATING THE BOTTOM LINE PROVENANCE, LOADING DATA, CREATING THE DATABASE 
 
 
 TBD - always update .md file 
@@ -11,6 +11,18 @@ TBD - always update .md file
 - create drs WS 
   - insert method with real location and drs id 
   - verify with 1.4 standard 
+
+
+
+20261106 - migrate to 0.3.0 dapper; regenrate for ryan
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+update all the provenance created is as described in the 0.3.0 version at 
+https://raw.githubusercontent.com/broadinstitute/dapper/0.2.0/schema/dapper.yaml schema file
+make sure the linter validates on 3 sample provenance files generated:
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py <provenance_file_input>
+let me know if this is a correct use of the schema file and if there are any concerns or issues
+
+
 
 
 20260923 - add trait/ancestry tables
