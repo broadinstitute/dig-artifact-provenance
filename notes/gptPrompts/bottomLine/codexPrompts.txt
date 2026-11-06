@@ -14,12 +14,17 @@ TBD - always update .md file
 
 
 
+20261106 - generaste yaml 
+update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
+add an optional parameter --generate_yaml which if speciffied generates yaml provenance files as opposed to the default json files
+
 20261106 - migrate to 0.3.0 dapper; regenrate for ryan
 update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
 update all the provenance created is as described in the 0.3.0 version at 
 https://raw.githubusercontent.com/broadinstitute/dapper/0.2.0/schema/dapper.yaml schema file
 make sure the linter validates on 3 sample provenance files generated:
 uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py <provenance_file_input>
+use the database data/database/20261106newBottomLineLoad.sqlite for the test load 
 let me know if this is a correct use of the schema file and if there are any concerns or issues
 
 

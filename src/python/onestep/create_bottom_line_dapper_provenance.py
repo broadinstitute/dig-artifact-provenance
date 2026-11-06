@@ -25,8 +25,9 @@ Optional arguments and defaults:
 - ``--in-database``: ``data/database/provenance_db.sqlite``
 - ``--in-log-file``: ``logs/bottom-line-provenance.log``
 - ``--save-provenance-files``: disabled by default
-- ``--out-dir``: ``data/bottom-line-provenance`` when
-  ``--save-provenance-files`` is used
+- ``--generate_yaml``: save and lint YAML provenance files instead of JSON;
+  also enables saving provenance files without ``--save-provenance-files``
+- ``--out-dir``: ``data/bottom-line-provenance`` when output files are saved
 - ``--out-graph-file``: not set by default; when provided, writes the
   intermediate computed-id graph JSON to that path.
 - ``--max-endpoints``: not set by default; when provided, only builds the first
@@ -232,14 +233,20 @@ def parse_args() -> argparse.Namespace:
         "--out-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help=(
-            "Output directory for DAPPER provenance JSON files when --save-provenance-files is set. "
+            "Output directory for saved DAPPER provenance files. "
             f"Default: {DEFAULT_OUTPUT_DIR}"
         ),
     )
     parser.add_argument(
         "--save-provenance-files",
         action="store_true",
-        help="Write individual provenance JSON files. Default: disabled.",
+        help="Write individual provenance files (JSON by default). Default: disabled.",
+    )
+    parser.add_argument(
+        "--generate_yaml",
+        "--generate-yaml",
+        action="store_true",
+        help="Write and lint YAML provenance files instead of JSON; implies --save-provenance-files.",
     )
     parser.add_argument(
         "--in-database",
@@ -407,11 +414,31 @@ def build_documents_from_graph(
     return documents
 
 
-def save_documents(documents: list[tuple[str, dict]], out_dir: Path) -> int:
+def output_filename(filename: str, generate_yaml: bool) -> str:
+    return str(Path(filename).with_suffix(".yaml")) if generate_yaml else filename
+
+
+def yaml_module():
+    try:
+        import yaml
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("--generate_yaml requires PyYAML") from exc
+    return yaml
+
+
+def serialize_document(document: dict, generate_yaml: bool) -> str:
+    if generate_yaml:
+        return yaml_module().safe_dump(document, sort_keys=False, allow_unicode=True)
+    return json.dumps(document, indent=2) + "\n"
+
+
+def save_documents(
+    documents: list[tuple[str, dict]], out_dir: Path, generate_yaml: bool = False
+) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     for filename, document in documents:
-        out_file = out_dir / filename
-        out_file.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+        out_file = out_dir / output_filename(filename, generate_yaml)
+        out_file.write_text(serialize_document(document, generate_yaml), encoding="utf-8")
     return len(documents)
 
 
@@ -583,10 +610,12 @@ def validate_ancestry_ids(connection: sqlite3.Connection, ancestry_ids: set[str]
         )
 
 
-def lint_document(filename: str, document: dict, dapper_linter: Path) -> list[str]:
+def lint_document(
+    filename: str, document: dict, dapper_linter: Path, generate_yaml: bool = False
+) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_lint_") as temp_dir:
-        temp_file = Path(temp_dir) / filename
-        temp_file.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+        temp_file = Path(temp_dir) / output_filename(filename, generate_yaml)
+        temp_file.write_text(serialize_document(document, generate_yaml), encoding="utf-8")
         command = ["uv", "run", str(dapper_linter), str(temp_file)]
         result = subprocess.run(command, capture_output=True, text=True, check=False, env=uv_environment())
         if result.returncode == 0:
@@ -600,13 +629,15 @@ def lint_document(filename: str, document: dict, dapper_linter: Path) -> list[st
         return messages or [f"DAPPER linter failed with exit code {result.returncode}"]
 
 
-def lint_documents(documents: list[tuple[str, dict]], dapper_linter: Path) -> None:
+def lint_documents(
+    documents: list[tuple[str, dict]], dapper_linter: Path, generate_yaml: bool = False
+) -> None:
     if not dapper_linter.exists():
         raise FileNotFoundError(f"DAPPER linter does not exist: {dapper_linter}")
 
     failures = []
     for filename, document in documents:
-        messages = lint_document(filename, document, dapper_linter)
+        messages = lint_document(filename, document, dapper_linter, generate_yaml)
         if messages:
             failures.append((filename, messages))
 
@@ -669,6 +700,8 @@ def load_documents_to_database(documents: list[tuple[str, dict]], database_file:
 
 def main() -> int:
     args = parse_args()
+    if args.generate_yaml:
+        yaml_module()
     s3_listing_dir = Path(args.s3_listing_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_graph_file = Path(args.out_graph_file).expanduser().resolve() if args.out_graph_file else None
@@ -693,7 +726,7 @@ def main() -> int:
     print(f"Minted DAPPER-ID-1 identifiers for {len(documents)} provenance documents with {dapper_identity}")
 
     if not args.skip_dapper_lint:
-        lint_documents(documents, dapper_linter)
+        lint_documents(documents, dapper_linter, args.generate_yaml)
         print(f"Validated {len(documents)} DAPPER provenance documents with {dapper_linter}")
 
     loaded_count = load_documents_to_database(documents, database_file, log_file)
@@ -701,9 +734,10 @@ def main() -> int:
     print(f"Loaded {loaded_count} bottom-line provenance documents into {database_file}")
     print(f"Log written to {log_file}")
 
-    if args.save_provenance_files:
-        saved_count = save_documents(documents, out_dir)
-        print(f"Wrote {saved_count} DAPPER provenance files to {out_dir}")
+    if args.save_provenance_files or args.generate_yaml:
+        saved_count = save_documents(documents, out_dir, args.generate_yaml)
+        output_format = "YAML" if args.generate_yaml else "JSON"
+        print(f"Wrote {saved_count} DAPPER {output_format} provenance files to {out_dir}")
 
     if missing_messages:
         print("Missing S3 listing snapshots:")
