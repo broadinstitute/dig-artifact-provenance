@@ -5,9 +5,34 @@
 
 
 20261103 - analyze pigean 
-analyze the scala code in /Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/scr/main/scala 
-list out all the s3 directories per top level bucket used into a set of files at data/pigean/s3/
+which scala files output the gene, gene set, factor, and PHEWAS result directories.
+
+
+| Scala stage | Result directories |
+|---|---|
+| TranslatePigeanStage.scala (/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/TranslatePigeanStage.scala:29) 
+| gene_stats/, gene_set_stats/, gene_gene_set_stats/ |
+
+| TranslateFactorStage.scala (/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/TranslateFactorStage.scala:29) 
+| factor/, gene_factor/, gene_set_factor/ |
+
+| CombinePigeanFactorStage.scala (/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/CombinePigeanFactorStage.scala:33) 
+| combined_gene_stats/, combined_gene_set_stats/ |
+
+| TranslatePhewasStage.scala (/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/TranslatePhewasStage.scala:29) 
+| phewas/ |
+
+PhewasPigeanStage.scala (/Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/PhewasPigeanStage.scala:54) produces the intermediate staging/phewas/ directory. The actual S3 uploads are in the Python scripts each Scala stage invokes.
+
+
+which is the scala file that writes out the final results of the pigean pipeline
+
+
+analyze the scala code in /Users/mduby/Code/ScalaWorkspace/MethodsBioindex/pigean/src/main/scala/ 
+list out all the s3 result directories used into a set of files at data/pigean/s3/
+use the files at data/bottom-line/s3/ as a guide
 also list out the final result bucket into a file at data/pigean/finalResult.txt
+do not connect to s3 directly
 do not make any code changes
 let me know if there are any issues
 

@@ -1,0 +1,1 @@
+s3://dig-analysis-data/out/metaanalysis/bottom-line/trans-ethnic/*/
