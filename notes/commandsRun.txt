@@ -1,5 +1,14 @@
 
 
+20261106 - regenerate bottom line for ryan
+python3 src/python/onestep/create_bottom_line_dapper_provenance.py \
+--in-database data/database/20261106newBottomLineLoad.sqlite \
+--in-log-file /tmp/onestep_bottom_line.log \
+--generate_yaml \
+--save-provenance-files \
+--out-dir /Users/mduby/Data/Broad/ProvenanceArtifact/BottomLineJson/20261108bottomLine020Yaml
+
+
 20261009 - upload test with motrpac 
 python3 src/python/gene_set/ingest_gene_set_prov_from_s3.py \
 --in_s3_bucket s3://dig-gene-set-data/marc-test/ \

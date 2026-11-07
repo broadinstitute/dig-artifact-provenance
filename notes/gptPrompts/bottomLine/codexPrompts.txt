@@ -16,7 +16,10 @@ TBD - always update .md file
 
 20261106 - generaste yaml 
 update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 
-add an optional parameter --generate_yaml which if speciffied generates yaml provenance files as opposed to the default json files
+add an optional parameter --generate_yaml which if specified generates yaml provenance files as opposed to the default json files
+if the parameter is not added to the command, then the script will work as before
+let me know if there are azny issues 
+
 
 20261106 - migrate to 0.3.0 dapper; regenrate for ryan
 update the src/python/onestep/create_bottom_line_dapper_provenance.py python script 

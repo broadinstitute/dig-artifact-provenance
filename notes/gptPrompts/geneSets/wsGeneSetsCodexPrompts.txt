@@ -4,6 +4,7 @@
 
 
 20261030 - apply fix for agents
+can I add a robots.txt file to my flask applicatyion that would overwrite the nginx restriction, if there are any?
 
 it seems some web ai agents have trouble accessing the json body of the web service calls
 does this web site and associated web service have a restriction that can prevent ai agents or web agents from accessing the provenance data?

@@ -5,6 +5,18 @@
 
 
 20261103 - analyze pigean 
+what are the full s3 paths for the following output directories
+gene_stats/
+gene_set_stats/
+gene_gene_set_stats/
+factor/
+gene_factor/ 
+gene_set_factor/
+combined_gene_stats/
+combined_gene_set_stats/
+phewas/
+
+
 which scala files output the gene, gene set, factor, and PHEWAS result directories.
 
 

@@ -59,6 +59,8 @@ Before linting, the script mints DAPPER-ID-1 computed node identifiers by
 batch-importing the DAPPER identity module in one ``uv run`` process:
 
     /Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py
+
+The DAPPER linter validates documents in batches of 250 per ``uv run`` process.
 """
 
 from __future__ import annotations
@@ -610,42 +612,46 @@ def validate_ancestry_ids(connection: sqlite3.Connection, ancestry_ids: set[str]
         )
 
 
-def lint_document(
-    filename: str, document: dict, dapper_linter: Path, generate_yaml: bool = False
-) -> list[str]:
-    with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_lint_") as temp_dir:
-        temp_file = Path(temp_dir) / output_filename(filename, generate_yaml)
-        temp_file.write_text(serialize_document(document, generate_yaml), encoding="utf-8")
-        command = ["uv", "run", str(dapper_linter), str(temp_file)]
-        result = subprocess.run(command, capture_output=True, text=True, check=False, env=uv_environment())
-        if result.returncode == 0:
-            return []
-
-        messages = []
-        if result.stdout.strip():
-            messages.append(result.stdout.strip())
-        if result.stderr.strip():
-            messages.append(result.stderr.strip())
-        return messages or [f"DAPPER linter failed with exit code {result.returncode}"]
-
-
 def lint_documents(
     documents: list[tuple[str, dict]], dapper_linter: Path, generate_yaml: bool = False
 ) -> None:
     if not dapper_linter.exists():
         raise FileNotFoundError(f"DAPPER linter does not exist: {dapper_linter}")
 
-    failures = []
-    for filename, document in documents:
-        messages = lint_document(filename, document, dapper_linter, generate_yaml)
-        if messages:
-            failures.append((filename, messages))
+    batch_size = 250
+    failures: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="bottom_line_dapper_lint_") as temp_dir:
+        temp_path = Path(temp_dir)
+        for batch_start in range(0, len(documents), batch_size):
+            batch = documents[batch_start:batch_start + batch_size]
+            paths = []
+            for filename, document in batch:
+                path = temp_path / output_filename(filename, generate_yaml)
+                path.write_text(serialize_document(document, generate_yaml), encoding="utf-8")
+                paths.append(path)
+
+            command = ["uv", "run", str(dapper_linter), "--quiet", *(str(path) for path in paths)]
+            result = subprocess.run(command, capture_output=True, text=True, check=False, env=uv_environment())
+            if result.returncode:
+                failed_reports = [
+                    report.strip()
+                    for report in result.stdout.split("\n\n")
+                    if "\n  FAIL —" in report
+                ]
+                if failed_reports:
+                    failures.extend(failed_reports)
+                else:
+                    details = (result.stderr or result.stdout).strip()
+                    failures.append(details or f"DAPPER linter failed with exit code {result.returncode}")
+
+            for path in paths:
+                path.unlink()
+            print(f"Linted {batch_start + len(batch)}/{len(documents)} DAPPER provenance documents", flush=True)
 
     if failures:
         rendered = ["DAPPER linter found errors in generated provenance documents:"]
-        for filename, messages in failures[:10]:
-            rendered.append(f"\n{filename}")
-            rendered.extend(messages)
+        for report in failures[:10]:
+            rendered.append(f"\n{report}")
         if len(failures) > 10:
             rendered.append(f"\n... {len(failures) - 10} additional file(s) failed linting")
         raise RuntimeError("\n".join(rendered))
