@@ -31381,8 +31381,6 @@ s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/catalog
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/rare_v2/Orphanet_99798/gene_set_factor.json
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/rare_v2/Orphanet_99860/gene_set_factor.json
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2/rare_v2/Orphanet_99885/gene_set_factor.json
-s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_genes/cfde/catalog_v2/out/pigean/gene_set_genes/cfde/gene_sets.json
-s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_genes/cfde/catalog_v2/out/pigean/gene_set_genes/cfde/genes.json
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/gcat_trait/gcat_trait_1-1-enyl-palmitoyl-2-linoleoyl-GPE_P-160182_measurement/gene_set_stats.json
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/gcat_trait/gcat_trait_1-1-enyl-palmitoyl-2-oleoyl-GPC_P-160181_measurement/gene_set_stats.json
 s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2/gcat_trait/gcat_trait_1-1-enyl-palmitoyl-2-palmitoleoyl-GPC_P-160161_measurement/gene_set_stats.json

@@ -2,7 +2,20 @@
 
 
 
+
+
 20261109 - start building pigean prov generating script 
+update the src/python/pigean/create_pigean_dapper_provenance.py python script 
+using the updated full path listing data in the data/pigean/s3 directory as reference
+use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
+use the database data/database/20261109pigeanStartLoad.sqlite for db testing
+use PIPELINE_TYPE as 'pigean' for the database rows
+use the /Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109bSecondDraftChasePigean to output the provenance yaml files
+update only the provenance file name to include the ancestry and trait code and skip the auto generated number
+tell me each step you are performing
+if you have a problem with any result file listing, skip and report the full skipped list at the end
+
+
 create a python script src/python/pigean/create_pigean_dapper_provenance.py
 to create all the provenance as described in the 0.2.0 version at 
 https://raw.githubusercontent.com/broadinstitute/dapper/0.2.0/schema/dapper.yaml schema file
