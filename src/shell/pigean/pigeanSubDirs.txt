@@ -1,0 +1,27 @@
+
+
+mkdir pigean_combined_gene_set_stats
+mv pigean_combined_gene_set_stats_*.yaml pigean_combined_gene_set_stats
+
+mkdir pigean_combined_gene_stats
+mv pigean_combined_gene_stats_*.yaml pigean_combined_gene_stats
+
+mkdir pigean_factor
+mv pigean_factor_*.yaml pigean_factor
+
+mkdir pigean_gene_factor
+mv pigean_gene_factor_*.yaml pigean_gene_factor
+
+mkdir pigean_gene_gene_set_stats
+mv pigean_gene_gene_set_stats_*.yaml pigean_gene_gene_set_stats
+
+mkdir pigean_gene_set_factor
+mv pigean_gene_set_factor_*.yaml pigean_gene_set_factor
+
+mkdir pigean_gene_set_stats
+mv pigean_gene_set_stats_*.yaml pigean_gene_set_stats
+
+mkdir pigean_gene_stats
+mv pigean_gene_stats_*.yaml pigean_gene_stats
+
+

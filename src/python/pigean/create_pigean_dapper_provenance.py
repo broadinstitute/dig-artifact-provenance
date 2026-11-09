@@ -31,9 +31,10 @@ sys.path.insert(0, str(REPO_ROOT / "src" / "python" / "onestep"))
 from create_bottom_line_dapper_provenance import lint_documents, mint_documents  # noqa: E402
 
 PIPELINE_TYPE = "pigean"
+ANCESTRY_ID = "Unspecified"
 LISTING_DIR = REPO_ROOT / "data" / "pigean" / "s3"
 DATABASE = REPO_ROOT / "data" / "database" / "20261109pigeanStartLoad.sqlite"
-OUTPUT_DIR = Path("/Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109firstDraftChasePigean")
+OUTPUT_DIR = Path("/Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109bSecondDraftChasePigean")
 LINTER = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py")
 IDENTITY = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py")
 METHODS = "https://github.com/broadinstitute/dig-aggregator-methods"
@@ -47,7 +48,7 @@ RESULT_TYPES = {
     "combined_gene_stats": "combinePigeanFactor.py",
     "combined_gene_set_stats": "combinePigeanFactor.py",
 }
-MISSING_LISTING_PREFIXES = (
+EXPECTED_LISTING_PREFIXES = (
     "s3://dig-analysis-data/out/pigean/gene_lists/",
     "s3://dig-analysis-data/out/pigean/staging/combined/",
     "s3://dig-analysis-data/variants_raw/",
@@ -73,13 +74,18 @@ def normalize_listing_uri(uri: str) -> str:
 def read_locations(listing_dir: Path) -> dict[str, set[str]]:
     required = (
         "dig-pigean-json-results.txt",
+        "dig-pigean-results.txt",
         "dig-anal-data-out-pigean-inputs.txt",
         "dig-anal-data-out-pigean-staging.txt",
+        "dig-anal-cfde-out-pigean-staging.txt",
+        "dig-anal-data-out-pigean-genelists.txt",
+        "dig-anal-data-variants-raw.txt",
         "dig-anal-data-out-meta-bl-ethnic.txt",
         "dig-anal-data-gene_assoc.txt",
         "dig-anal-bin-gwas.txt",
         "dig-anal-bin-hpo.txt",
         "dig-anal-bin-orphanet.txt",
+        "dig-anal-bin-pigean-methods.txt",
     )
     missing = [name for name in required if not (listing_dir / name).is_file()]
     if missing:
@@ -109,8 +115,29 @@ def node_id(kind: str, value: str) -> str:
     return kind + ":" + hashlib.sha256(value.encode("utf-8")).hexdigest()[:32]
 
 
-def artifact_id(uri: str, kind: str) -> str:
-    return f"pigean_{kind}_{hashlib.sha256(uri.encode('utf-8')).hexdigest()[:24]}"
+def provenance_filename(uri: str, ancestry: str, case_collisions: set[str]) -> str:
+    kind, model, group, phenotype = result_parts(uri)
+    stem = f"pigean_{kind}_{model}_{group}_{ancestry}_{phenotype}"
+    if stem.casefold() in case_collisions:
+        # APFS is commonly case insensitive. Distinguish trait codes whose
+        # only difference is letter case without adding a generated number.
+        phenotype = "".join("^" + ch if ch.isupper() else ch for ch in phenotype)
+        stem = f"pigean_{kind}_{model}_{group}_{ancestry}_{phenotype}"
+    filename = stem + ".yaml"
+    if len(filename.encode("utf-8")) > 255 or "/" in filename or "\\" in filename:
+        raise ValueError("trait code cannot be represented safely in a filename")
+    return filename
+
+
+def case_collision_keys(result_paths: list[str], ancestry: str) -> set[str]:
+    names: Counter[str] = Counter()
+    for uri in result_paths:
+        try:
+            kind, model, group, phenotype = result_parts(uri)
+        except ValueError:
+            continue
+        names[f"pigean_{kind}_{model}_{group}_{ancestry}_{phenotype}".casefold()] += 1
+    return {name for name, count in names.items() if count > 1}
 
 
 def script_url(script: str) -> str:
@@ -241,12 +268,15 @@ def main() -> int:
     if args.batch_size < 1 or (args.max_results is not None and args.max_results < 1):
         raise ValueError("batch size and max results must be positive")
     locations = read_locations(args.s3_listing_dir)
-    result_paths = sorted(locations["dig-pigean-json-results.txt"])
+    all_result_paths = sorted(locations["dig-pigean-json-results.txt"])
+    case_collisions = case_collision_keys(all_result_paths, ANCESTRY_ID)
+    result_paths = all_result_paths
     if args.max_results is not None:
         result_paths = result_paths[:args.max_results]
     print(f"Read {len(result_paths)} JSON result paths from local S3 listings", flush=True)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     skipped: list[tuple[str, str]] = []
+    seen_filenames: set[str] = set()
     samples: dict[str, tuple[str, dict]] = {}
     counts: Counter[str] = Counter()
     connection = None if args.skip_database else sqlite3.connect(args.in_database)
@@ -258,9 +288,14 @@ def main() -> int:
             records: list[tuple[str, dict, str, str]] = []
             for uri in result_paths[start:start + args.batch_size]:
                 try:
-                    kind, _, _, _ = result_parts(uri)
+                    if uri not in locations["dig-pigean-results.txt"]:
+                        raise ValueError("result is absent from dig-pigean-results.txt")
+                    filename = provenance_filename(uri, ANCESTRY_ID, case_collisions)
+                    if filename.casefold() in seen_filenames:
+                        raise ValueError(f"filename collides with another result: {filename}")
                     document, trait, title = build_document(uri, locations)
-                    records.append((artifact_id(uri, kind) + ".yaml", document, trait, title))
+                    records.append((filename, document, trait, title))
+                    seen_filenames.add(filename.casefold())
                 except ValueError as exc:
                     skipped.append((uri, str(exc)))
             if not records:
@@ -300,7 +335,9 @@ def main() -> int:
             connection.close()
     print(f"Created {sum(counts.values())} files; database pipeline_type={PIPELINE_TYPE}")
     print("Missing directory listings by bucket (upstream paths referenced by code):")
-    for prefix in MISSING_LISTING_PREFIXES:
+    for prefix in EXPECTED_LISTING_PREFIXES:
+        if any(path.startswith(prefix) for path in locations["_all"]):
+            continue
         print(f"- {prefix}")
     print(f"Skipped result paths ({len(skipped)}):")
     for uri, reason in skipped:
