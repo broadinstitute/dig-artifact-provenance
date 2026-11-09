@@ -1,0 +1,11 @@
+s3://dig-analysis-bin/pigean/methods/pigean/methods/
+s3://dig-analysis-bin/pigean/methods/pigean/methods/donor_factor_regression.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/factor_graph.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/factor_graph_202411.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/factor_matrix.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/factor_matrix_psmadbec.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/factor_phewas.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/priors-202411.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/priors-202507.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/priors-251215-mod.py
+s3://dig-analysis-bin/pigean/methods/pigean/methods/priors.py

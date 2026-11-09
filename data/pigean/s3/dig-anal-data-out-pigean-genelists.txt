@@ -1,0 +1,11 @@
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde_overlap/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde-inc_overlap/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde-inc-v2_overlap/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde-inc-v2/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde-inc/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/cfde/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/enrichr_filtered_all/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/lincs_all/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/mouse/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/msigdb_nohp_all/
+s3://dig-analysis-data/out/pigean/gene_lists/out/pigean/gene_lists/ryan061025/

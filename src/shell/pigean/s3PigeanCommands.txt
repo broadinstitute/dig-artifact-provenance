@@ -50,8 +50,25 @@ aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|
 BUCKET="s3://dig-analysis-data/out/pigean/inputs"
 aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-pigean-inputs.txt
 
+# added 2nd draft 
 BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/staging"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-cfde-out-pigean-staging.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_lists"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-pigean-genelists.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/staging/combined"
 aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-pigean-staging.txt
+
+BUCKET="s3://dig-analysis-data/variants_raw"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-variants-raw.txt
+
+BUCKET="s3://dig-analysis-bin/pigean/methods"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" > dig-anal-bin-pigean-methods.txt
+
+
+
+
 
 
 # chase effort

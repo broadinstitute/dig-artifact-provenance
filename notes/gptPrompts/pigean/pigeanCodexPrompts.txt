@@ -15,9 +15,23 @@ create a provenance file for each file listing in data/pigean/s3/dig-pigean-json
 use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
 for the pigean and intake pipelines
 use the data/database/20261109pigeanStartLoad.sqlite for db testing
+use PIPELINE_TYPE as 'pigean' for the database rows
 use the /Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109firstDraftChasePigean to output the provenance yaml files
 tell me each step you are performing
 if you have a problem with any result file listing, skip and report the full skipped list at the end
+
+Skipped result paths (complete list):
+
+- s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_genes/cfde/gene_sets.json
+- s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_genes/cfde/genes.json
+
+I could not identify a producer for those two files in the inspected Pigean code.
+
+Missing directory listings: 
++ dig-analysis-data lacks out/pigean/gene_lists/
++ out/pigean/staging/combined/ 
++ variants_raw/ 
+- dig-analysis-bin lacks pigean/methods/. The script marks locations inferred from code when they are absent from the supplied snapshots.
 
 
 
