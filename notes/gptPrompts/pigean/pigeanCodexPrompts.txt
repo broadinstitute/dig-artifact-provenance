@@ -2,6 +2,31 @@
 
 
 
+20261109 - start building pigean prov generating script 
+create a python script src/python/pigean/create_pigean_dapper_provenance.py
+to create all the provenance as described in the 0.2.0 version at 
+https://raw.githubusercontent.com/broadinstitute/dapper/0.2.0/schema/dapper.yaml schema file
+model the script like the bottom-line one at src/python/onestep/create_bottom_line_dapper_provenance.py
+make sure the linter validates on 3 sample provenance files generated:
+uv run /Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py <provenance_file_input>
+using the full path listing data in the data/pigean/s3 directory as reference
+let me know if you are missing an s3 directory lising and what bucket it is
+create a provenance file for each file listing in data/pigean/s3/dig-pigean-json-results.txt
+use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
+for the pigean and intake pipelines
+use the data/database/20261109pigeanStartLoad.sqlite for db testing
+use the /Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109firstDraftChasePigean to output the provenance yaml files
+tell me each step you are performing
+if you have a problem with any result file listing, skip and report the full skipped list at the end
+
+
+
+
+
+20261109 - creating chase pipeline for hackathon
+in the python script src/python/onestep/create_bottom_line_dapper_provenance.py
+PIPELINE_TYPE is not defined
+how does the db code work
 
 
 20261103 - analyze pigean 
