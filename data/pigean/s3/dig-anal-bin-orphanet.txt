@@ -1,0 +1,3 @@
+s3://dig-analysis-bin/orphanet/orphanet/
+s3://dig-analysis-bin/orphanet/orphanet/classifications/
+s3://dig-analysis-bin/orphanet/orphanet/genes/

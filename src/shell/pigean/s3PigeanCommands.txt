@@ -1,0 +1,135 @@
+
+
+aws s3 ls s3://dig-analysis-data/ --recursive \
+  | awk '{print $4}' \
+  | grep '/' \
+  | sed 's|/[^/]*$|/|' \
+  | sort -u
+
+aws s3 ls s3://out/ --recursive \
+  | awk '{print $4}' \
+  | grep '/' \
+  | sed 's|/[^/]*$|/|' \
+  | sort -u
+
+
+aws s3 ls s3://variants/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u
+
+s3 directories:
+---------------
+s3://dig-analysis-bin/gwas_catalog
+
+s3://dig-analysis-bin/hpo
+
+s3://dig-analysis-bin/orphanet
+
+s3://dig-analysis-data/gene_associations/combined
+
+s3://dig-analysis-data/out/metaanalysis/bottom-line/trans-ethnic
+
+s3://dig-analysis-data/out/pigean
+
+
+working:
+--------
+BUCKET="s3://dig-analysis-bin/gwas_catalog"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-bin-gwas.txt
+
+BUCKET="s3://dig-analysis-bin/hpo"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-bin-hpo.txt
+
+BUCKET="s3://dig-analysis-bin/orphanet"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-bin-orphanet.txt
+
+BUCKET="s3://dig-analysis-data/gene_associations/combined"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-gene_assoc.txt
+
+BUCKET="s3://dig-analysis-data/out/metaanalysis/bottom-line/trans-ethnic"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-meta-bl-ethnic.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/inputs"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-pigean-inputs.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/staging"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u | sed "s|^|$BUCKET/|" > dig-anal-data-out-pigean-staging.txt
+
+
+# chase effort
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/combined_gene_set_stats/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" > dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/combined_gene_stats/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/factor/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_factor/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_gene_set_stats/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_factor/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_genes/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_set_stats/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-cfde/catalog_v2/out/pigean/gene_stats/cfde-inc-v2"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+
+
+
+
+
+
+
+# old portal outputs
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_gene_set_stats/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" > dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_lists/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_set_genes/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_set_stats/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+BUCKET="s3://dig-analysis-data/out/pigean/gene_stats/cfde"
+aws s3 ls "$BUCKET/" --recursive | awk '{print $4}' | sed "s|^|$BUCKET/|" >> dig-pigean-results.txt
+
+# filter out success files
+grep -v SUCCESS dig-pigean-results.txt > dig-pigean-json-results.txt
+
+
+
+
+old:
+--------
+- aws s3 ls s3://dig-analysis-data/out/metaanalysis/variants/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-variants.txt
+
+- aws s3 ls s3://dig-analysis-data/out/metaanalysis/bottom-line/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-bottom-line.txt
+
+- aws s3 ls s3://dig-analysis-data/out/metaanalysis/min_p/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-minp.txt
+
+- aws s3 ls s3://dig-analysis-data/out/metaanalysis/largest/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-largest.txt
+
+- aws s3 ls s3://dig-analysis-data/out/metaanalysis/variants_raw/ --recursive | awk '{print $4}' | grep '/' | sed 's|/[^/]*$|/|' | sort -u > out-variants_raw.txt
+
+
+
+s3 buckets:
+-----------
+- out/metaanalysis/variants
+- out/metaanalysis/bottom-line
+- out/metaanalysis/min_p
+- out/metaanalysis/largest
+

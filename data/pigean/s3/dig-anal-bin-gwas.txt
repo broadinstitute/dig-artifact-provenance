@@ -1,0 +1,2 @@
+s3://dig-analysis-bin/gwas_catalog/gwas_catalog/
+s3://dig-analysis-bin/gwas_catalog/gwas_catalog/scripts/
