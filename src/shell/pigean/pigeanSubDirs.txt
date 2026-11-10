@@ -25,3 +25,6 @@ mkdir pigean_gene_stats
 mv pigean_gene_stats_*.yaml pigean_gene_stats
 
 
+aws s3 cp . s3://dig-provenance/pigean-with-commands/ --recursive
+
+

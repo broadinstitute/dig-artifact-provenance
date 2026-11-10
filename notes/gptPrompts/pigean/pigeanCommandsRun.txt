@@ -1,0 +1,8 @@
+
+
+
+# create all the provenance
+python3 src/python/pigean/create_pigean_dapper_provenance.py \
+  --skip-database \
+  --batch-size 1000 \
+  --out-provenance-dir /Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109bSecondDraftChasePigean

@@ -2,9 +2,38 @@
 
 
 
+20261109 - add arguments for the pigean provenance script 
+update the src/python/pigean/create_pigean_dapper_provenance.py python script 
+make the following script variables input arguments to the script: 
+LISTING_DIR should either be set by an optional --s3-listing-dir or default to what it currently does
+DATABASE should be an required argument --in-database but only if the --skip-database is not provided
+OUTPUT_DIR should be an required argument --out-provenance-dir
+provide a comment section at the top of the script detailing all the argument options
+let me know if there are any issues
 
+
+LISTING_DIR = REPO_ROOT / "data" / "pigean" / "s3"
+DATABASE = REPO_ROOT / "data" / "database" / "20261109pigeanStartLoad.sqlite"
+OUTPUT_DIR = Path("/Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109bSecondDraftChasePigean")
 
 20261109 - start building pigean prov generating script 
+update the src/python/pigean/create_pigean_dapper_provenance.py python script 
+see if for any provenance activity that is linked to a .py or .sh script, 
+a 'command' element can be added that specifies the python command used in that activity
+example is: 
+- id: dapper:Activity.GVWrdaUZ_4hbKy9Kmc-0MqtiROE_7rma
+  name: runPigean for gcat_trait/gcat_trait_10-undecenoate_111n1_measurement (cfde-inc-v2)
+  activity_type: runPigean
+  description: Pipeline stage inferred from the DIG Aggregator Methods source; this
+    snapshot does not prove a particular execution.
+  script_url: https://github.com/broadinstitute/dig-aggregator-methods/blob/master/pigean/src/main/resources/runPigean.py
+  repo_url: https://github.com/broadinstitute/dig-aggregator-methods
+  command: python3 runPigean.py <arguments list>
+tell me each step you are performing
+let me know if there are any issues
+
+
+
 update the src/python/pigean/create_pigean_dapper_provenance.py python script 
 using the updated full path listing data in the data/pigean/s3 directory as reference
 use the web repo https://github.com/broadinstitute/dig-aggregator-methods as the code reference 
