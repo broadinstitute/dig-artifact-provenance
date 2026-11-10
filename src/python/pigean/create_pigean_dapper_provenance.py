@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shlex
 import sqlite3
 import sys
 from collections import Counter
@@ -144,6 +145,31 @@ def script_url(script: str) -> str:
     return f"{METHODS}/blob/master/pigean/src/main/resources/{script}"
 
 
+def stage_command(script: str, trait_type: str, group: str, phenotype: str, model: str) -> str:
+    """Reconstruct the stage invocation from its Scala Job.Script arguments."""
+    if script.endswith(".py"):
+        command = ["python3", script]
+    elif script.endswith(".sh"):
+        command = ["bash", script]
+    else:
+        raise ValueError(f"unsupported activity script type: {script}")
+
+    if script == "runPigean.py":
+        command.extend((f"--trait-type={trait_type}", f"--trait-group={group}",
+                        f"--phenotype={phenotype}", f"--model={model}"))
+    elif script == "makeSumstats.py":
+        command.append(f"--phenotype={phenotype}")
+    elif script == "factorBetas.py":
+        command.extend((f"--trait-group={group}", f"--phenotype={phenotype}",
+                        f"--gene-set-size={model}"))
+    elif script in {"translatePigean.py", "translateFactor.py", "combinePigeanFactor.py"}:
+        command.extend((f"--trait-group={group}", f"--phenotype={phenotype}",
+                        f"--model={model}"))
+    elif script not in {"gcatIntake.py", "orphanetIntake.py"} and not script.endswith(".sh"):
+        raise ValueError(f"no command mapping for activity script: {script}")
+    return shlex.join(command)
+
+
 def build_document(uri: str, locations: dict[str, set[str]]) -> tuple[dict, str, str]:
     kind, model, group, phenotype = result_parts(uri)
     all_locations = locations["_all"]
@@ -173,10 +199,11 @@ def build_document(uri: str, locations: dict[str, set[str]]) -> tuple[dict, str,
         activities.add(activity_key)
         activity = node_id("activity", activity_key)
         doc["activities"].append({
-            "id": activity, "name": script.removesuffix(".py") + f" for {group}/{phenotype} ({model})",
-            "activity_type": script.removesuffix(".py"),
-            "description": "Pipeline stage inferred from the DIG Aggregator Methods source; this snapshot does not prove a particular execution.",
+            "id": activity, "name": Path(script).stem + f" for {group}/{phenotype} ({model})",
+            "activity_type": Path(script).stem,
+            "description": "Pipeline stage and command reconstructed from the DIG Aggregator Methods source; this snapshot does not prove a particular execution.",
             "script_url": script_url(script), "repo_url": METHODS,
+            "command": stage_command(script, input_type, group, phenotype, model),
         })
         doc["was_generated_by_edges"].append({"subject": output, "predicate": "prov:wasGeneratedBy", "object": activity})
         for source in dict.fromkeys(inputs):
