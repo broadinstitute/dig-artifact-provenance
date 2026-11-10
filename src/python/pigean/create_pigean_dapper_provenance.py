@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+# Arguments:
+#   --s3-listing-dir DIR       Optional; defaults to data/pigean/s3.
+#   --out-provenance-dir DIR   Required; writes one YAML file per result.
+#   --in-database FILE        Required unless --skip-database is specified.
+#   --skip-database           Generate YAML without inserting database rows.
+#   --dapper-linter FILE      Optional; defaults to the local DAPPER linter.
+#   --dapper-identity FILE    Optional; defaults to the local DAPPER identity script.
+#   --max-results N           Optional; process only the first N results.
+#   --lint-all                Optional; lint all documents instead of three samples.
+#   --batch-size N            Optional; mint N documents per batch (default 500).
 """Create DAPPER 0.2.0 Pigean provenance from local S3 listing snapshots.
 
 One YAML document is made for each supported JSON result in
@@ -9,7 +19,7 @@ the inferred lineage; listing snapshots establish only observed locations.
 Example:
     python3 src/python/pigean/create_pigean_dapper_provenance.py \\
         --in-database data/database/20261109pigeanStartLoad.sqlite \\
-        --out-dir /path/to/PigeanYaml
+        --out-provenance-dir /path/to/PigeanYaml
 
 Use --max-results 3 with a copy of the database for a small integration test.
 """
@@ -34,8 +44,6 @@ from create_bottom_line_dapper_provenance import lint_documents, mint_documents 
 PIPELINE_TYPE = "pigean"
 ANCESTRY_ID = "Unspecified"
 LISTING_DIR = REPO_ROOT / "data" / "pigean" / "s3"
-DATABASE = REPO_ROOT / "data" / "database" / "20261109pigeanStartLoad.sqlite"
-OUTPUT_DIR = Path("/Users/mduby/Data/Broad/ProvenanceArtifact/Pigean/PigeanYaml/20261109bSecondDraftChasePigean")
 LINTER = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/lint/lint_provenance.py")
 IDENTITY = Path("/Users/mduby/Code/DccWorkspace/DapperSchema/schema/identity/dapper_identity.py")
 METHODS = "https://github.com/broadinstitute/dig-aggregator-methods"
@@ -277,17 +285,30 @@ def load_batch(connection: sqlite3.Connection, batch: list[tuple[str, dict, str,
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--s3-listing-dir", type=Path, default=LISTING_DIR)
-    parser.add_argument("--out-dir", type=Path, default=OUTPUT_DIR)
-    parser.add_argument("--in-database", type=Path, default=DATABASE)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--s3-listing-dir", type=Path, default=LISTING_DIR,
+                        help="Directory containing S3 listing snapshots (default: data/pigean/s3).")
+    parser.add_argument("--out-provenance-dir", type=Path, required=True,
+                        help="Required directory for generated YAML provenance files.")
+    parser.add_argument("--in-database", type=Path,
+                        help="SQLite database to load; required unless --skip-database is set.")
     parser.add_argument("--skip-database", action="store_true", help="Write YAML without changing a database.")
-    parser.add_argument("--dapper-linter", type=Path, default=LINTER)
-    parser.add_argument("--dapper-identity", type=Path, default=IDENTITY)
+    parser.add_argument("--dapper-linter", type=Path, default=LINTER,
+                        help=f"DAPPER provenance linter (default: {LINTER}).")
+    parser.add_argument("--dapper-identity", type=Path, default=IDENTITY,
+                        help=f"DAPPER identity script (default: {IDENTITY}).")
     parser.add_argument("--max-results", type=int, help="Process only the first N result paths for testing.")
     parser.add_argument("--lint-all", action="store_true", help="Lint every document; default checks three representative files.")
-    parser.add_argument("--batch-size", type=int, default=500)
-    return parser.parse_args()
+    parser.add_argument("--batch-size", type=int, default=500,
+                        help="Documents per minting batch (default: 500).")
+    args = parser.parse_args()
+    if not args.skip_database and args.in_database is None:
+        parser.error("--in-database is required unless --skip-database is specified")
+    if not args.skip_database and not args.in_database.is_file():
+        parser.error(f"database file does not exist: {args.in_database}")
+    return args
 
 
 def main() -> int:
@@ -301,7 +322,7 @@ def main() -> int:
     if args.max_results is not None:
         result_paths = result_paths[:args.max_results]
     print(f"Read {len(result_paths)} JSON result paths from local S3 listings", flush=True)
-    args.out_dir.mkdir(parents=True, exist_ok=True)
+    args.out_provenance_dir.mkdir(parents=True, exist_ok=True)
     skipped: list[tuple[str, str]] = []
     seen_filenames: set[str] = set()
     samples: dict[str, tuple[str, dict]] = {}
@@ -335,7 +356,7 @@ def main() -> int:
                 kind = name.split("_", 2)[1]
                 if kind in {"gene", "factor", "combined"} and kind not in samples:
                     samples[kind] = (name, doc)
-                (args.out_dir / name).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+                (args.out_provenance_dir / name).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
                 counts[kind] += 1
             if connection is not None:
                 load_batch(connection, batch)
@@ -360,7 +381,11 @@ def main() -> int:
     finally:
         if connection is not None:
             connection.close()
-    print(f"Created {sum(counts.values())} files; database pipeline_type={PIPELINE_TYPE}")
+    database_status = (
+        "database load skipped" if args.skip_database
+        else f"database rows loaded with pipeline_type={PIPELINE_TYPE}"
+    )
+    print(f"Created {sum(counts.values())} provenance YAML file(s); {database_status}")
     print("Missing directory listings by bucket (upstream paths referenced by code):")
     for prefix in EXPECTED_LISTING_PREFIXES:
         if any(path.startswith(prefix) for path in locations["_all"]):
