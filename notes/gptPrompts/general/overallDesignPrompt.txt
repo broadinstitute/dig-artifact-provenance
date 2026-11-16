@@ -1,5 +1,6 @@
 
 
+20261116 - verisoning design 
 design a versioning system with the following requirements:
 - sharded jsonl files get created by python/scala pipelines using aws emr
 - end result files need to be versioned; intermediate results do not
