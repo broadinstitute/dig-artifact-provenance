@@ -1,0 +1,16 @@
+
+
+design a versioning system with the following requirements:
+- sharded jsonl files get created by python/scala pipelines using aws emr
+- end result files need to be versioned; intermediate results do not
+- the pipelines can share steps and intermediate result files and directories
+- some pipeline steps can be rerun if errors occur or code has been modified, with the downstream steps needing to also be rerun
+- the versioning should include at least the start files and end result files, along with the github commited code from the pipeline
+- data is only recomputed when necessary, such as when inputs have changed or code has been updated
+- the end user needs to track exactly what inputs and pipeline code created a tagged version of the output
+- an end user should be able to pull the version information for a result by a data search
+- data releases of pipeline results mostly occur every 3 months, although data is only recomputed as necessary
+
+
+- example pipelin
+

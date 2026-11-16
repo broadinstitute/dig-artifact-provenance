@@ -1,0 +1,13 @@
+
+
+@channel 1,532,344 gene set were loaded into the new provenance application
+example: https://translator.broadinstitute.org/artifact_provenance/gene_set/details/id=dapper%3AGeneSet.1_zpjD62Bs5j3umy2tKDDiVjijqJxQFY
+the provenance section for the gene sets is a link to a new streaming web page since some of the dapper YAML docs are large (RummaGEO is 85 MB)
+the application home page has been modified to reflect the inclusion of the gene set data
+
+2026-10-09 22:02:56,249 INFO S3 provenance files read: 7627
+2026-10-09 22:02:56,249 INFO Gene set collections inserted: 7527
+2026-10-09 22:02:56,249 INFO Gene set artifacts inserted: 1532344
+
+
+
